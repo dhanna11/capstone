@@ -32,39 +32,45 @@ def ClassFactory(name, argnames,BaseClass=BaseClass):
     newclass = type(name, (BaseClass,), {"__init__": __init__})
     return newclass
 
+# White upper case, 1. Black lowercase, 0
+# Blank negative -1
 def convertFENToTernaryList(fen_str):
-    # TODO: Fix me
     l = []
-    for c in fen_board_str:
-        # white is lowercase
-        if (c.islower()):
-            l.append(-1)
-        # black is uppercase
-        elif (c.isupper()):
-            l.append(1)
-        else:
-            l.append(0)
+    fen_str_board = fen_str.split(" ")[0]
+    fen_rows = fen_str_board.split("/")
+    for string_row in fen_rows:
+        for c in string_row:
+            if (c.isnumeric()):                
+                l.extend([-1] * int(c))
+            elif (c.islower()):
+                l.append(0)
+            elif (c.isupper()):
+                l.append(1)
+
+    assert(len(l) == 64)
     return l
 
-# -1 is white. 1 is black
+# white 1. Black 0
+# Blank -1                
 def BoardChangeToMove(newboardArray, oldboardArray):
-    print(newboardArray)
+    print(len(newboardArray))
+    assert(len(newboardArray) == len(oldboardArray))
     for i in range(len(newboardArray)):
         # Castling handled as rook captures own piece
-        if ((newboardArray[i] != 0) and (oldboardArray[i] == 0)):
-            # move
+        if ((newboardArray[i] != -1) and (oldboardArray[i] == -1)):
+            # white or black move
             dest_square = i       
-        elif (newboardArray[i] == -1) and (oldboardArray[i] == 1):
+        elif (newboardArray[i] == 0) and (oldboardArray[i] == 1):
             # black capture
             dest_square = i
-        elif (newboardArray[i] == 1) and (oldboardArray[i] == -1):
+        elif (newboardArray[i] == 1) and (oldboardArray[i] == 0):
             # white capture
             dest_square = i
-        elif (newboardArray[i] == 0) and (oldboardArray[i] != 0):
+        elif (newboardArray[i] == -1) and (oldboardArray[i] != -1):
             # new blank place implies source. May break en pasante
             source_square = i
         else:
-            print("Unhandled board change")
+            assert(newboardArray[i] == oldboardArray[i])
     
     return chess.Move(source_square, dest_square)
     
@@ -86,7 +92,10 @@ def gameLoop():
         if isinstance(event, Event.PIECE_MOVED):
             oldboardArray = convertFENToTernaryList(board.fen())
             newboardArray = event.newboardArray
+            print(oldboardArray)
+            print(newboardArray)
             move = BoardChangeToMove(newboardArray, oldboardArray)
+            print(move)
             if move in board.legal_moves:
                 board.push(move)
             else:
@@ -94,20 +103,21 @@ def gameLoop():
 
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=board))
-            
+# white 1. Black 0
+# Blank -1                
 def main():
     app = QApplication(sys.argv)
     svgWidget = QSvgWidget()
     svgWidget.renderer().load("temp.svg")
     svgWidget.show()
-    tempboardArray = [-1,-1,-1,-1,-1,-1,-1,-1
+    tempboardArray = [ 1, 1, 1, 1, 1, 1, 1, 1,
+                       1, 1, 1, 1, 1, 1, 1,-1,
+                      -1,-1,-1,-1,-1,-1,-1,-1,
+                      -1,-1,-1,-1,-1,-1,-1, 1, 
+                      -1,-1,-1,-1,-1,-1,-1,-1, 
                       -1,-1,-1,-1,-1,-1,-1,-1,
                        0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0,
-                       1, 1, 1, 1, 1, 1, 1, 1,
-                       1, 1, 1, 1, 1, 1, 1, 1]
+                       0, 0, 0, 0, 0, 0, 0, 0]
     
     tempEvent = Event.PIECE_MOVED(newboardArray=tempboardArray)
     event_q.put(tempEvent)
