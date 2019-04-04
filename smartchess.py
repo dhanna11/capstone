@@ -34,12 +34,17 @@ def ClassFactory(name, argnames,BaseClass=BaseClass):
 
 # White upper case, 1. Black lowercase, 0
 # Blank negative -1
+# Order matters
+# FEN record starts from rank 8 and ends with rank 1
+# and from file "a" to file "h"
 def convertFENToTernaryList(fen_str):
     l = []
     fen_str_board = fen_str.split(" ")[0]
     fen_rows = fen_str_board.split("/")
-    for string_row in fen_rows:
+    print(fen_rows)
+    for string_row in fen_rows[::-1]:
         for c in string_row:
+            print(c)
             if (c.isnumeric()):                
                 l.extend([-1] * int(c))
             elif (c.islower()):
