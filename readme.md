@@ -13,14 +13,16 @@ Events API:
      PIECE_PLACED
      
 Messages API:
+   SELECT_SQUARES
+   DESELECT_SQUARES
+
    ILLEGAL_MOVE/BOARDSTATE
    NEW_POSITION
    CLOCK_TIME
-   SELECT_SQUARES
-   DELECT_SQUARES
    SWITCH TURN
    
 
 TODO:
+Select piece. Show possible moves
 Write out actual UML diagrams
 Produce a sequence diagram

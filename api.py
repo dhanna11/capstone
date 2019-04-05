@@ -21,12 +21,15 @@ def ClassFactory(name, argnames,BaseClass=BaseClass):
     newclass = type(name, (BaseClass,), {"__init__": __init__})
     return newclass
 
-class SmartBoardMessage():
-    NEW_POSITION = ClassFactory(EventApi.RENDER_SCREEN, ["xmlData"])
-
 class GameEventApi():
-    PIECE_MOVED = 'EVT_PIECE_MOVED'
-    
+    PIECE_SELECTED = 'EVT_PIECE_MOVED'
     
 class GameEvent():
-    PIECE_MOVED = ClassFactory(EventApi.PIECE_MOVED, ['newboardArray'])
+    PIECE_SELECTED = ClassFactory(GameEventApi.PIECE_SELECTED, ['newboardArray'])
+
+class GameMessageApi():
+    SELECT_SQUARES = 'SELECT_SQUARES'
+
+class GameMessage():
+    SELECT_SQUARES = ClassFactory(GameMessageApi.SELECT_SQUARES, ["squareSet"])
+
