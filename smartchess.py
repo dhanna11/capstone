@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import chess
+import chess.engine
 import chess.svg
 import queue
 import sys
@@ -9,9 +10,9 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader
 
-# Use event-driven API
-class BaseClass(object):
 
+# Use event-driven API. Inspired by Picochess.
+class BaseClass(object):
     def __init__(self, classtype):
         self._type = classtype
 
@@ -21,53 +22,49 @@ class BaseClass(object):
     def __hash__(self):
         return hash(str(self.__class__) + ": " + str(self.__dict__))
 
-def ClassFactory(name, argnames,BaseClass=BaseClass):
+
+def ClassFactory(name, argnames, BaseClass=BaseClass):
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             if key not in argnames:
-                raise TypeError("argument {} not valid for {}".format(key, self.__class__.__name__))
+                raise TypeError("argument {} not valid for {}".format(
+                    key, self.__class__.__name__))
             setattr(self, key, value)
         BaseClass.__init__(self, name)
 
-    newclass = type(name, (BaseClass,), {"__init__": __init__})
+    newclass = type(name, (BaseClass, ), {"__init__": __init__})
     return newclass
 
-class GameEventApi():
-    PIECE_SELECTED = 'EVT_PIECE_MOVED'
-    
-class GameEvent():
-    PIECE_SELECTED = ClassFactory(GameEventApi.PIECE_SELECTED, ['newboardArray'])
 
-class GameMessageApi():
-    SELECT_SQUARES = 'SELECT_SQUARES'
+class GameEvent():
+    PIECE_SELECTED = ClassFactory("PIECE_SELECTED", ['newboardArray'])
+    PIECE_PLACED = ClassFactory("PIECE_PLACED", ['newboardArray'])
+
 
 class GameMessage():
-    SELECT_SQUARES = ClassFactory(GameMessageApi.SELECT_SQUARES, ["squareSet"])
+    SELECT_SQUARES = ClassFactory('SELECT_SQUARES', ["squareSet"])
 
-
-
-game_event_q = queue.Queue()
-board = chess.Board()
 
 class utils():
+    @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
-        assert(len(newboardArray) == len(oldboardArray))
-        assert(len(newboardArray) == 64)
-    
+        assert (len(newboardArray) == len(oldboardArray))
+        assert (len(newboardArray) == 64)
+
         for i in range(64):
             if (newboardArray[i] == -1) and (oldboardArray[i] != -1):
                 return i
-        # should find a difference. Error out if now    
-        assert(false)
-    
+        # should find a difference. Error out if now
+        assert (false)
+
+    @staticmethod
     def BoardChangeToMove(newboardArray, oldboardArray):
-        print(len(newboardArray))
-        assert(len(newboardArray) == len(oldboardArray))
+        assert (len(newboardArray) == len(oldboardArray))
         for i in range(len(newboardArray)):
             # Castling handled as rook captures own piece
             if ((newboardArray[i] != -1) and (oldboardArray[i] == -1)):
                 # white or black move
-                dest_square = i       
+                dest_square = i
             elif (newboardArray[i] == 0) and (oldboardArray[i] == 1):
                 # black capture
                 dest_square = i
@@ -75,11 +72,12 @@ class utils():
                 # white capture
                 dest_square = i
             elif (newboardArray[i] == -1) and (oldboardArray[i] != -1):
-                # new blank place implies source. May break en pasante
+                # new blank place implies source.
+                # TODO: May break en_pasante captures?
                 source_square = i
             else:
-                assert(newboardArray[i] == oldboardArray[i])
-            
+                assert (newboardArray[i] == oldboardArray[i])
+
         return chess.Move(source_square, dest_square)
 
     # White upper case, 1. Black lowercase, 0
@@ -87,50 +85,89 @@ class utils():
     # Order matters
     # FEN record starts from rank 8 and ends with rank 1
     # and from file "a" to file "h"
+    @staticmethod
     def convertFENToTernaryList(fen_str):
         l = []
         fen_str_board = fen_str.split(" ")[0]
         fen_rows = fen_str_board.split("/")
-        print(fen_rows)
         for string_row in fen_rows[::-1]:
             for c in string_row:
-                print(c)
-                if (c.isnumeric()):                
+                if (c.isnumeric()):
                     l.extend([-1] * int(c))
                 elif (c.islower()):
                     l.append(0)
                 elif (c.isupper()):
                     l.append(1)
 
-        assert(len(l) == 64)
+        assert (len(l) == 64)
         return l
 
+
 class CoreGame():
-
-
-    def gameLoop(topWidget):
+    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
+        self.gui = gui
+        self.isMultiplayer = isMultiplayer
+        self.engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
+        self.board = chess.Board()
+        self.gameEventQueue = queue.Queue()
+        self.time = time
+        
+    def gameLoop(self):
         try:
-            event = game_event_q.get()
-        except queue.Empty: 
+            event = self.gameEventQueue.get()
+        except queue.Empty:
             pass
         else:
             if isinstance(event, GameEvent.PIECE_SELECTED):
-                oldboardArray = utils.convertFENToTernaryList(board.fen())
+                oldboardArray = utils.convertFENToTernaryList(self.board.fen())
                 newboardArray = event.newboardArray
-                print(oldboardArray)
-                print(newboardArray)
-                source_square = utils.BoardChangeToSourceSquare(newboardArray, oldboardArray)
-                print(source_square)
-                squares = board.attacks(source_square)
-                print(squares)
-                xml = QXmlStreamReader()
-                for move in board.legal_moves:
+                source_square = utils.BoardChangeToSourceSquare(
+                    newboardArray, oldboardArray)
+                squareSet = chess.SquareSet()
+                for move in self.board.legal_moves:
                     if move.from_square == source_square:
-                        squares.add(move.to_square)
-                xml.addData(chess.svg.board(board=board, squares=squares))
-                topWidget.renderer().load(xml)
+                        squareSet.add(move.to_square)
+                # draw a circle by drawing an arrow
+                arrows = [
+                    chess.svg.Arrow(
+                        source_square, source_square, color="black")
+                ]
+                xml = QXmlStreamReader()                
+                xml.addData(
+                    chess.svg.board(
+                        board=self.board, squares=squareSet, arrows=arrows))
+                self.gui.renderer().load(xml)
 
-class smartchessgui(QMainWindow):
+            elif isinstance(event, GameEvent.PIECE_PLACED):
+                oldboardArray = utils.convertFENToTernaryList(self.board.fen())
+                newboardArray = event.newboardArray
+                move = utils.BoardChangeToMove(newboardArray, oldboardArray)
+                print(move)
+                if move not in self.board.legal_moves:
+                    # TODO: Send illegal move Message
+                    print("illegal move detected")
+                    return
+                
+                self.board.push(move)
+                xml = QXmlStreamReader()
+                xml.addData(chess.svg.board(board=self.board))
+                # TODO: Refactor using Observer pattern
+                self.gui.renderer().load(xml)
+                
+                if self.board.is_game_over():
+                    # TODO: Send game over message
+                    print("Game Over! Player wins")
+                if not self.isMultiplayer:
+                    result = self.engine.play(self.board, chess.engine.Limit(time=self.time))
+                    self.board.push(result.move)
+                    xml = QXmlStreamReader()
+                    xml.addData(chess.svg.board(board=self.board))
+                    self.gui.renderer().load(xml)
+                    if self.board.is_game_over():
+                        print("Game Over! Stockfish Wins!")
+                    
+                    
+class SmartChessGui(QSvgWidget):
     def __init__(self):
         super().__init__()
         self.title = "Smart Chess 0.1"
@@ -145,25 +182,41 @@ class smartchessgui(QMainWindow):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.show()
 
+
 def main():
     app = QApplication(sys.argv)
-    svgWidget = QSvgWidget()
-    svgWidget.setGeometry(10,10,640,480)
-    svgWidget.show()
+    gui = SmartChessGui()
+    selectedboardArray = [
+        1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ]
 
-    tempboardArray = [ 1, 1, 1, 1, 1, 1, 1, 1,
-                       1, 1, 1, 1, 1, 1, 1,-1,
-                      -1,-1,-1,-1,-1,-1,-1,-1,
-                      -1,-1,-1,-1,-1,-1,-1,-1, 
-                      -1,-1,-1,-1,-1,-1,-1,-1, 
-                      -1,-1,-1,-1,-1,-1,-1,-1,
-                       0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0]
-    
-    tempEvent = GameEvent.PIECE_SELECTED(newboardArray=tempboardArray)
-    game_event_q.put(tempEvent)
-    gameLoop(svgWidget)
-    sys.exit( app.exec_() )
+    placedboardArray = [
+        1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+       -1,-1,-1,-1,-1,-1,-1, 1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+       -1,-1,-1,-1,-1,-1,-1,-1,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ]
+
+    coreGame = CoreGame(gui)
+    coreGame.gameEventQueue.put(GameEvent.PIECE_SELECTED(newboardArray=selectedboardArray))
+    coreGame.gameEventQueue.put(GameEvent.PIECE_PLACED(newboardArray=placedboardArray))
+
+    coreGame.gameLoop()
+    coreGame.gameLoop()
+
+    sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
