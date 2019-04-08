@@ -6,23 +6,35 @@ Boards and GUI send events objects to a queue to be processed by coregame logic.
 Core game logic also spawn's stockfish pondering threads for each position.
 
 Events API:
-  From GUI:     
+
+  From GUI:
+  
      START_NEW_GAME
+     
   From Board:
+  
      PIECE_SELECTED
+     
      PIECE_PLACED
+     
      
 Messages API:
    SELECT_SQUARES
+   
    DESELECT_SQUARES
 
    ILLEGAL_MOVE/BOARDSTATE
+
+
    NEW_POSITION
+   
    CLOCK_TIME
+   
    SWITCH TURN
    
 
 TODO:
-Select piece. Show possible moves
+
 Write out actual UML diagrams
+
 Produce a sequence diagram
