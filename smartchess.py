@@ -5,12 +5,10 @@ import chess.engine
 import chess.svg
 import queue
 import sys
-import asyncio
-
+import time
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader
-
 
 # Use event-driven API. Inspired by Picochess.
 class BaseClass(object):
@@ -22,7 +20,6 @@ class BaseClass(object):
 
     def __hash__(self):
         return hash(str(self.__class__) + ": " + str(self.__dict__))
-
 
 def ClassFactory(name, argnames, BaseClass=BaseClass):
     def __init__(self, **kwargs):
@@ -36,15 +33,12 @@ def ClassFactory(name, argnames, BaseClass=BaseClass):
     newclass = type(name, (BaseClass, ), {"__init__": __init__})
     return newclass
 
-
 class GameEvent():
     PIECE_SELECTED = ClassFactory("PIECE_SELECTED", ['newboardArray'])
     PIECE_PLACED = ClassFactory("PIECE_PLACED", ['newboardArray'])
 
-
 class GameMessage():
     SELECT_SQUARES = ClassFactory('SELECT_SQUARES', ["squareSet"])
-
 
 class utils():
     @staticmethod
@@ -55,7 +49,7 @@ class utils():
         for i in range(64):
             if (newboardArray[i] == -1) and (oldboardArray[i] != -1):
                 return i
-        # should find a difference. Error out if now
+        # should find a difference. Error out if not
         assert (false)
 
     @staticmethod
@@ -103,7 +97,6 @@ class utils():
         assert (len(l) == 64)
         return l
 
-
 class CoreGame():
     def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
         self.gui = gui
@@ -112,9 +105,9 @@ class CoreGame():
         self.gameEventQueue = queue.Queue()
         self.time = time
         
-    async def gameLoop(self):
+    def gameLoop(self):
         try:
-            event = self.gameEventQueue.get(block=True)
+            event = self.gameEventQueue.get(block=False)
         except:
             pass
         else:
@@ -169,8 +162,6 @@ class CoreGame():
                     self.gui.renderer().load(xml)
                     if self.board.is_game_over():
                         print("Game Over! Stockfish Wins!")
-
-        await asyncio.sleep(0)
         
 class SmartChessGui(QSvgWidget):
     def __init__(self):
@@ -187,10 +178,8 @@ class SmartChessGui(QSvgWidget):
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.show()
 
-
 def main():
     app = QApplication(sys.argv)
-    gui = SmartChessGui()
     selectedboardArray = [
         1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1,-1,
@@ -201,7 +190,6 @@ def main():
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0
     ]
-
     placedboardArray = [
         1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1,-1,
@@ -212,16 +200,15 @@ def main():
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0
     ]
-
+    gui = SmartChessGui()
     coreGame = CoreGame(gui)
     coreGame.gameEventQueue.put(GameEvent.PIECE_SELECTED(newboardArray=selectedboardArray))
     coreGame.gameEventQueue.put(GameEvent.PIECE_PLACED(newboardArray=placedboardArray))
-
-    asyncio.run(coreGame.gameLoop())
-    asyncio.run(coreGame.gameLoop())
-
+    # Loop 1. Player selects (lifts) pawn piece, is show possible moves
+    coreGame.gameLoop()
+    # Loop 2. Play plays (sets) pawn piece, stockfish responds with AI move generated in .1 ms
+    coreGame.gameLoop()
     sys.exit(app.exec_())
-
 
 if __name__ == "__main__":
     main()
