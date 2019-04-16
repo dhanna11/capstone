@@ -6,7 +6,7 @@ import chess.svg
 import queue
 import sys
 import time
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader
 
@@ -176,7 +176,16 @@ class SmartChessGui(QSvgWidget):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+        self.textbox = QLineEdit(self)
         self.show()
+
+# Call when the sensor array's detect a piece is picked up from the board
+def onPieceSelected(boardArrary):
+    pass
+
+# Call when the sensor array detects a piece has been placed on the board
+def onPiecePlaced(boardArrary):
+    pass
 
 def main():
     app = QApplication(sys.argv)
