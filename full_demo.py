@@ -97,30 +97,22 @@ def state_logic(i, j, prev_state, new_state):
         onPiecePlaced(current_state)
     elif (prev_state == black or prev_state == white) and new_state == nothing:
         onPieceSelected(current_state)
-    elif (prev_state == black and new_state == white) or (prev_state == white && new_state == black):
+    elif (prev_state == black and new_state == white) or (prev_state == white and new_state == black):
         onPiecePlaced(current_state)
         
 while True:
     #sweep through inputs on mux
     for i in range(8):
-        #mux inputs
-        print ("currently checking :", i)
         control_row_mux(i)
         for j in range(8):
             control_col_mux(j)
-            #time.sleep(1)
             x = interpret(chan_0.value)
-            state_logic(i, j current_state[i*8 +j], x)
-            #this moved to state_logic function
-            #current_state[i*8 + j] = x
-            #print(x) 
-            print(chan_0.value)
-            
+            state_logic(i, j, current_state[i*8 +j], x)
 
     print ("current state of board:")
-    for i in range(4):
+    for i in range(64):
         print_value(current_state[i])
-        if i == 1 or i == 3:
+        if i % 8 == 7:
             print("\n")
     time.sleep(0.5)
             
