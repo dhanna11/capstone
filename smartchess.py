@@ -8,37 +8,7 @@ import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import QXmlStreamReader
-
-# Use event-driven API. Inspired by Picochess.
-class BaseClass(object):
-    def __init__(self, classtype):
-        self._type = classtype
-
-    def __repr__(self):
-        return self._type
-
-    def __hash__(self):
-        return hash(str(self.__class__) + ": " + str(self.__dict__))
-
-def ClassFactory(name, argnames, BaseClass=BaseClass):
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            if key not in argnames:
-                raise TypeError("argument {} not valid for {}".format(
-                    key, self.__class__.__name__))
-            setattr(self, key, value)
-        BaseClass.__init__(self, name)
-
-    newclass = type(name, (BaseClass, ), {"__init__": __init__})
-    return newclass
-
-class GameEvent():
-    PIECE_SELECTED = ClassFactory("PIECE_SELECTED", ['newboardArray'])
-    PIECE_PLACED = ClassFactory("PIECE_PLACED", ['newboardArray'])
-
-class GameMessage():
-    SELECT_SQUARES = ClassFactory('SELECT_SQUARES', ["squareSet"])
+from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject
 
 class utils():
     @staticmethod
@@ -97,72 +67,61 @@ class utils():
         assert (len(l) == 64)
         return l
 
-class CoreGame():
+class CoreGame(QObject):
+    
     def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
         self.gui = gui
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
-        self.gameEventQueue = queue.Queue()
         self.time = time
         
-    def gameLoop(self):
-        try:
-            event = self.gameEventQueue.get(block=False)
-        except:
-            pass
-        else:
-            if isinstance(event, GameEvent.PIECE_SELECTED):
-                oldboardArray = utils.convertFENToTernaryList(self.board.fen())
-                newboardArray = event.newboardArray
-                source_square = utils.BoardChangeToSourceSquare(
-                    newboardArray, oldboardArray)
-                squareSet = chess.SquareSet()
-                for move in self.board.legal_moves:
-                    if move.from_square == source_square:
-                        squareSet.add(move.to_square)
-                # draw a circle by drawing an arrow
-                arrows = [
-                    chess.svg.Arrow(
-                        source_square, source_square, color="black")
-                ]
-                xml = QXmlStreamReader()                
-                xml.addData(
-                    chess.svg.board(
-                        board=self.board, squares=squareSet, arrows=arrows))
-                # TODO: Refactor using Observer pattern
-                self.gui.renderer().load(xml)
+    @pyqtSlot()
+    def on_piece_selected(self, newboardArray):
+        oldboardArray = utils.convertFENToTernaryList(self.board.fen())
+        source_square = utils.BoardChangeToSourceSquare(
+            newboardArray, oldboardArray)
+        squareSet = chess.SquareSet()
+        for move in self.board.legal_moves:
+            if move.from_square == source_square:
+                squareSet.add(move.to_square)
+        # draw a circle by drawing an arrow
+        arrows = [
+            chess.svg.Arrow(
+                source_square, source_square, color="black")
+        ]
+        xml = QXmlStreamReader()                
+        xml.addData(chess.svg.board(board=self.board, squares=squareSet,
+            arrows=arrows))
+        self.gui.load(xml)
 
-            elif isinstance(event, GameEvent.PIECE_PLACED):
-                oldboardArray = utils.convertFENToTernaryList(self.board.fen())
-                newboardArray = event.newboardArray
-                move = utils.BoardChangeToMove(newboardArray, oldboardArray)
-                print(move)
-                if move not in self.board.legal_moves:
-                    # TODO: Send illegal move Message
-                    print("illegal move detected")
-                    return
+    @pyqtSlot()
+    def on_piece_placed(self, newboardArray):
+        oldboardArray = utils.convertFENToTernaryList(self.board.fen())
+        move = utils.BoardChangeToMove(newboardArray, oldboardArray)
+        if move not in self.board.legal_moves:
+            # TODO: Send illegal move Message
+            print("illegal move detected")
+            return                
+        self.board.push(move)
+        xml = QXmlStreamReader()
+        xml.addData(chess.svg.board(board=self.board))
+        # TODO: Refactor using Observer pattern
+        self.gui.renderer().load(xml)
                 
-                self.board.push(move)
-                xml = QXmlStreamReader()
-                xml.addData(chess.svg.board(board=self.board))
-                # TODO: Refactor using Observer pattern
-                self.gui.renderer().load(xml)
-                
-                if self.board.is_game_over():
-                    # TODO: Send game over message
-                    print("Game Over! Player wins")
-                if not self.isMultiplayer:
-                    # Launch stockfish, ask for a move, then terminate. 
-                    engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
-                    result = engine.play(self.board, chess.engine.Limit(time=self.time))
-                    engine.quit()
-                    self.board.push(result.move)
-                    xml = QXmlStreamReader()
-                    xml.addData(chess.svg.board(board=self.board))
-                    self.gui.renderer().load(xml)
-                    if self.board.is_game_over():
-                        print("Game Over! Stockfish Wins!")
-        
+        if self.board.is_game_over():
+            # TODO: Send game over message
+            print("Game Over! Player wins")
+        if not self.isMultiplayer:
+            # Launch stockfish, ask for a move, then terminate. 
+            engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
+            result = engine.play(self.board, chess.engine.Limit(time=self.time))
+            engine.quit()
+            self.board.push(result.move)
+            xml = QXmlStreamReader()
+            xml.addData(chess.svg.board(board=self.board))
+            if self.board.is_game_over():
+                print("Game Over! Stockfish Wins!")
+                                
 class SmartChessGui(QSvgWidget):
     def __init__(self):
         super().__init__()
@@ -179,45 +138,18 @@ class SmartChessGui(QSvgWidget):
         self.textbox = QLineEdit(self)
         self.show()
 
-# Call when the sensor array's detect a piece is picked up from the board
-def onPieceSelected(boardArrary):
-    pass
-
-# Call when the sensor array detects a piece has been placed on the board
-def onPiecePlaced(boardArrary):
-    pass
+    def renderXML(self, xml):
+        self.gui.renderer().load(xml)
+        
+        
+class SmartChess():
+    def __init__(self):
+        self.app = QApplication(sys.argv)
+        self.coreGame = CoreGame(SmartChessGui())
+        sys.exit(self.app.exec_())
 
 def main():
-    app = QApplication(sys.argv)
-    selectedboardArray = [
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0
-    ]
-    placedboardArray = [
-        1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-       -1,-1,-1,-1,-1,-1,-1, 1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-       -1,-1,-1,-1,-1,-1,-1,-1,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0
-    ]
-    gui = SmartChessGui()
-    coreGame = CoreGame(gui)
-    coreGame.gameEventQueue.put(GameEvent.PIECE_SELECTED(newboardArray=selectedboardArray))
-    coreGame.gameEventQueue.put(GameEvent.PIECE_PLACED(newboardArray=placedboardArray))
-    # Loop 1. Player selects (lifts) pawn piece, is show possible moves
-    coreGame.gameLoop()
-    # Loop 2. Play plays (sets) pawn piece, stockfish responds with AI move generated in .1 ms
-    coreGame.gameLoop()
-    sys.exit(app.exec_())
+    smartChess = SmartChess()
 
 if __name__ == "__main__":
     main()
