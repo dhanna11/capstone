@@ -9,42 +9,43 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 import smartchess
 
-#GPIO.setmode(GPIO.BOARD)
-#row pins
-GPIO.setup(13, GPIO.OUT)
-GPIO.setup(19, GPIO.OUT)
-GPIO.setup(26, GPIO.OUT)
-
-#column pins
-GPIO.setup(16, GPIO.OUT)
-GPIO.setup(20, GPIO.OUT)
-GPIO.setup(21, GPIO.OUT)
-
-# Create the I2C bus
-i2c = busio.I2C(board.SCL, board.SDA)
-
-# Create the ADC object using the I2C bus
-ads = ADS.ADS1015(i2c)
-
-# Create single-ended input on channel 0
-chan_0 = AnalogIn(ads, ADS.P0) 
-chan_1 = AnalogIn(ads, ADS.P1)
-chan_2 = AnalogIn(ads, ADS.P2)
-chan_3 = AnalogIn(ads, ADS.P3)
-
-nothing = -1
-white = 0
-black = 1
-
 class sensorRead(QObject):
     
     board_current_state = []
+
+    # Create single-ended input on channel 0
+    chan_0 = AnalogIn(ads, ADS.P0) 
+    chan_1 = AnalogIn(ads, ADS.P1)
+    chan_2 = AnalogIn(ads, ADS.P2)
+    chan_3 = AnalogIn(ads, ADS.P3)
+    
+    # Create the I2C bus
+    i2c = busio.I2C(board.SCL, board.SDA)
+
+    # Create the ADC object using the I2C bus
+    ads = ADS.ADS1015(i2c)
+
+    nothing = -1
+    white = 0
+    black = 1
 
     piece_selected = pyqtSignal(list)
     piece_placed = pyqtSignal(list)
     
     def __init__(self, coreGame):
         self.coreGame = coreGame
+        #GPIO.setmode(GPIO.BOARD)
+        #row pins
+        GPIO.setup(13, GPIO.OUT)
+        GPIO.setup(19, GPIO.OUT)
+        GPIO.setup(26, GPIO.OUT)
+
+        #column pins
+        GPIO.setup(16, GPIO.OUT)
+        GPIO.setup(20, GPIO.OUT)
+        GPIO.setup(21, GPIO.OUT)
+        
+        #initializing board
         for i in range(64):
             board_current_state.append(nothing)
 
@@ -64,8 +65,6 @@ class sensorRead(QObject):
         elif 750 < voltage:
             #print ("black")
             return black
-        #else:
-         #   print ("error")
 
     #function to control based on number input (0-7)
     def control_row_mux(x):
