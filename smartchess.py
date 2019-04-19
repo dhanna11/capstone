@@ -8,10 +8,9 @@ import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread
+from sensor_read import SensorReadMock
 
-#from sensor_read import sensorRead
-from sensor_read_mock import SensorMock
 class utils():
     @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
@@ -77,8 +76,11 @@ class CoreGame(QObject):
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
         self.time = time
+        xml = QXmlStreamReader()
+        xml.addData(chess.svg.board(board=self.board))
+        self.gui.renderer().load(xml)
         
-    @pyqtSlot()
+    @pyqtSlot(list)
     def on_piece_selected(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
         source_square = utils.BoardChangeToSourceSquare(
@@ -95,9 +97,9 @@ class CoreGame(QObject):
         xml = QXmlStreamReader()                
         xml.addData(chess.svg.board(board=self.board, squares=squareSet,
             arrows=arrows))
-        self.gui.load(xml)
+        self.gui.renderer().load(xml)
 
-    @pyqtSlot()
+    @pyqtSlot(list)
     def on_piece_placed(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
         move = utils.BoardChangeToMove(newboardArray, oldboardArray)
@@ -138,18 +140,19 @@ class SmartChessGui(QSvgWidget):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.textbox = QLineEdit(self)
         self.show()
 
-    def renderXML(self, xml):
-        self.gui.renderer().load(xml)
-        
-        
 class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
-        self.sensorRead = SensorMock(self.coreGame)
+        time.sleep(4)
+        self.sensorRead = SensorReadMock(self.coreGame)
+        self.sensorThread = QThread()
+        self.sensorRead.moveToThread(self.sensorThread)
+        self.sensorThread.started.connect(self.sensorRead.read_sensors)
+        self.sensorThread.finished.connect(self.app.exit)
+        self.sensorThread.start()
         sys.exit(self.app.exec_())
 
 def main():
