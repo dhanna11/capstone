@@ -4,37 +4,31 @@ import RPi.GPIO as GPIO
 
 import board
 import busio
+from PyQt5.QtCore import QObject
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
-import smartchess
+nothing = -1
+white = 0
+black = 1
 
-class sensorRead(QObject):
+class SensorRead(QObject):
     
     board_current_state = []
 
-    # Create single-ended input on channel 0
-    chan_0 = AnalogIn(ads, ADS.P0) 
-    chan_1 = AnalogIn(ads, ADS.P1)
-    chan_2 = AnalogIn(ads, ADS.P2)
-    chan_3 = AnalogIn(ads, ADS.P3)
-    
     # Create the I2C bus
     i2c = busio.I2C(board.SCL, board.SDA)
 
     # Create the ADC object using the I2C bus
     ads = ADS.ADS1015(i2c)
 
-    nothing = -1
-    white = 0
-    black = 1
+    # Create single-ended input on channel 0
+    chan_0 = AnalogIn(ads, ADS.P0)     
 
     piece_selected = pyqtSignal(list)
     piece_placed = pyqtSignal(list)
     
-    def __init__(self, coreGame):
-        self.coreGame = coreGame
-        #GPIO.setmode(GPIO.BOARD)
+    def __init__(self):
         #row pins
         GPIO.setup(13, GPIO.OUT)
         GPIO.setup(19, GPIO.OUT)
@@ -135,5 +129,73 @@ class sensorRead(QObject):
             time.sleep(0.5)
                 
         
-                
+class SensorReadMock(QObject):
 
+    state = [
+        [
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        [
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        [
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1, 1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]
+    ]
+
+    piece_selected = pyqtSignal(list)
+    piece_placed = pyqtSignal(list)
+
+    def __init__(self, coreGame):
+        super().__init__()
+        self.coreGame = coreGame
+        self.add_piece_selected_slot(coreGame.on_piece_selected)
+    
+    def add_piece_selected_slot(self, slot):
+        self.piece_selected.connect(slot)
+
+    def add_piece_placed_slot(self, slot):
+        self.piece_placed.connect(slot)
+    
+    def state_logic(i, j, piece_prev_state, piece_new_state):
+        board_current_state[i*8 + j] = new_piece_state
+        if (piece_prev_state == nothing
+            and (piece_new_state == black or piece_new_state == white)):
+            piece_placed.emit(board_current_state)
+        
+        elif ((piece_prev_state == black or piece_prev_state == white)
+              and piece_new_state == nothing):
+            piece_selected.emit(board_current_state)
+        
+        elif ((piece_prev_state == black and piece_new_state == white)
+              or (piece_prev_state == white and piece_new_state == black)):
+            piece_placed.emit(board_current_state)
+
+    def read_sensors(self):
+        for state_index in range(2):
+            for i in range(8):
+                for j in range(8):
+                    self.state_logic(i, j, state[state_index][i*8 +j], state[state_index + 1][i*8 +j] )
+
+            time.sleep(0.5)

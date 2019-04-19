@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot
 
+#from sensor_read import sensorRead
+from sensor_read_mock import SensorMock
 class utils():
     @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
@@ -70,6 +72,7 @@ class utils():
 class CoreGame(QObject):
     
     def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
+        super().__init__()
         self.gui = gui
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
@@ -146,6 +149,7 @@ class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
+        self.sensorRead = SensorMock(self.coreGame)
         sys.exit(self.app.exec_())
 
 def main():
