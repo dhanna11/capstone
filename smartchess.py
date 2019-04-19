@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot
 
+#from sensor_read import sensorRead
+from software_test import SensorMock
 class utils():
     @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
@@ -146,6 +148,7 @@ class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
+        self.sensorRead = SensorMock()
         sys.exit(self.app.exec_())
 
 def main():
