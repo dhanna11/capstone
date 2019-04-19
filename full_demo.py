@@ -9,13 +9,44 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 import smartchess
 
+#GPIO.setmode(GPIO.BOARD)
+#row pins
+GPIO.setup(13, GPIO.OUT)
+GPIO.setup(19, GPIO.OUT)
+GPIO.setup(26, GPIO.OUT)
+
+#column pins
+GPIO.setup(16, GPIO.OUT)
+GPIO.setup(20, GPIO.OUT)
+GPIO.setup(21, GPIO.OUT)
+
+# Create the I2C bus
+i2c = busio.I2C(board.SCL, board.SDA)
+
+# Create the ADC object using the I2C bus
+ads = ADS.ADS1015(i2c)
+
+# Create single-ended input on channel 0
+chan_0 = AnalogIn(ads, ADS.P0) 
+chan_1 = AnalogIn(ads, ADS.P1)
+chan_2 = AnalogIn(ads, ADS.P2)
+chan_3 = AnalogIn(ads, ADS.P3)
+
+nothing = -1
+white = 0
+black = 1
+
 class sensorRead(QObject):
     
+    board_current_state = []
+
     piece_selected = pyqtSignal(list)
     piece_placed = pyqtSignal(list)
     
     def __init__(self, coreGame):
         self.coreGame = coreGame
+        for i in range(64):
+            board_current_state.append(nothing)
 
     def add_piece_selected_slot(self, slot):
         self.piece_selected.connect(slot)
@@ -23,33 +54,6 @@ class sensorRead(QObject):
     def add_piece_placed_slot(self, slot):
         self.piece_placed.connect(slot)
     
-    #GPIO.setmode(GPIO.BOARD)
-    #row pins
-    GPIO.setup(13, GPIO.OUT)
-    GPIO.setup(19, GPIO.OUT)
-    GPIO.setup(26, GPIO.OUT)
-
-    #column pins
-    GPIO.setup(16, GPIO.OUT)
-    GPIO.setup(20, GPIO.OUT)
-    GPIO.setup(21, GPIO.OUT)
-
-    # Create the I2C bus
-    i2c = busio.I2C(board.SCL, board.SDA)
-
-    # Create the ADC object using the I2C bus
-    ads = ADS.ADS1015(i2c)
-
-    # Create single-ended input on channel 0
-    chan_0 = AnalogIn(ads, ADS.P0) 
-    chan_1 = AnalogIn(ads, ADS.P1)
-    chan_2 = AnalogIn(ads, ADS.P2)
-    chan_3 = AnalogIn(ads, ADS.P3)
-
-    nothing = -1
-    white = 0
-    black = 1
-
     def interpret(voltage):
         if 315 <= voltage and voltage <= 730:
             #print ("nothing")
@@ -62,7 +66,6 @@ class sensorRead(QObject):
             return black
         #else:
          #   print ("error")
-
 
     #function to control based on number input (0-7)
     def control_row_mux(x):
@@ -93,12 +96,6 @@ class sensorRead(QObject):
         else:
             GPIO.output(21, False)
 
-    board_current_state = []
-
-    for i in range(64):
-        board_current_state.append(nothing)
-
-
     def print_value(y):
         if y == nothing:
             print("nothing ", end ='')
@@ -112,9 +109,11 @@ class sensorRead(QObject):
         if (piece_prev_state == nothing
             and (piece_new_state == black or piece_new_state == white)):
             piece_placed.emit(board_current_state)
+        
         elif ((piece_prev_state == black or piece_prev_state == white)
               and piece_new_state == nothing):
             piece_selected.emit(board_current_state)
+        
         elif ((piece_prev_state == black and piece_new_state == white)
               or (piece_prev_state == white and piece_new_state == black)):
             piece_placed.emit(board_current_state)

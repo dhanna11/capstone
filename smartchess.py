@@ -8,7 +8,7 @@ import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject
+from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot
 
 class utils():
     @staticmethod
