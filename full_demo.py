@@ -7,7 +7,22 @@ import busio
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
-class softwareTest():
+import smartchess
+
+class sensorRead(QObject):
+    
+    piece_selected = pyqtSignal(list)
+    piece_placed = pyqtSignal(list)
+    
+    def __init__(self, coreGame):
+        self.coreGame = coreGame
+
+    def add_piece_selected_slot(self, slot):
+        self.piece_selected.connect(slot)
+
+    def add_piece_placed_slot(self, slot):
+        self.piece_placed.connect(slot)
+    
     #GPIO.setmode(GPIO.BOARD)
     #row pins
     GPIO.setup(13, GPIO.OUT)
@@ -95,27 +110,28 @@ class softwareTest():
     def state_logic(i, j, prev_state, new_state):
         current_state[i*8 + j] = new_state
         if prev_state == nothing and (new_state == black or new_state == white):
-            onPiecePlaced(current_state)
+            piece_placed.emit(new_state)
         elif (prev_state == black or prev_state == white) and new_state == nothing:
-            onPieceSelected(current_state)
+            piece_selected.emit(new_state)
         elif (prev_state == black and new_state == white) or (prev_state == white and new_state == black):
-            onPiecePlaced(current_state)
+            piece_placed.emit(new_state)
             
-    while True:
-        #sweep through inputs on mux
-        for i in range(8):
-            control_row_mux(i)
-            for j in range(8):
-                control_col_mux(j)
-                x = interpret(chan_0.value)
-                state_logic(i, j, current_state[i*8 +j], x)
+    def read_sensors():
+        while True:
+            #sweep through inputs on mux
+            for i in range(8):
+                control_row_mux(i)
+                for j in range(8):
+                    control_col_mux(j)
+                    x = interpret(chan_0.value)
+                    self.state_logic(i, j, current_state[i*8 +j], x)
 
-        print ("current state of board:")
-        for i in range(64):
-            print_value(current_state[i])
-            if i % 8 == 7:
-                print("\n")
-        time.sleep(0.5)
+            print ("current state of board:")
+            for i in range(64):
+                print_value(current_state[i])
+                if i % 8 == 7:
+                    print("\n")
+            time.sleep(0.5)
                 
         
                 
