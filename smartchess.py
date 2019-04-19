@@ -8,7 +8,7 @@ import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread
+from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
 from sensor_read import SensorReadMock
 
 class utils():
@@ -146,13 +146,11 @@ class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
-        time.sleep(4)
-        self.sensorRead = SensorReadMock(self.coreGame)
-        self.sensorThread = QThread()
-        self.sensorRead.moveToThread(self.sensorThread)
-        self.sensorThread.started.connect(self.sensorRead.read_sensors)
-        self.sensorThread.finished.connect(self.app.exit)
-        self.sensorThread.start()
+        self.sensorRead = SensorReadMock()
+        self.sensorRead.add_piece_placed_slot(self.coreGame.on_piece_selected)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.sensorRead.read_sensors)
+        self.timer.start(1000)
         sys.exit(self.app.exec_())
 
 def main():

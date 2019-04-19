@@ -4,7 +4,7 @@ import RPi.GPIO as GPIO
 
 import board
 import busio
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QRunnable, pyqtSlot
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
@@ -12,14 +12,17 @@ nothing = -1
 white = 0
 black = 1
 
-class SensorRead(QObject):
-    
+class SensorSignals(QObject):
     piece_selected = pyqtSignal(list)
     piece_placed = pyqtSignal(list)
-    
-    def __init__(self):
-        self.board_current_state = []
 
+class SensorRead(QObject):
+        
+    def __init__(self):
+        super(SensorRead, self).__init__()
+        self.board_current_state = []
+        self.signals = SensorSignals()
+        
         # Create the I2C bus
         i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -101,15 +104,15 @@ class SensorRead(QObject):
         self.board_current_state[i*8 + j] = new_piece_state
         if (piece_prev_state == nothing
             and (piece_new_state == black or piece_new_state == white)):
-            self.piece_placed.emit(self.board_current_state)
+            self.signals.piece_placed.emit(self.board_current_state)
         
         elif ((piece_prev_state == black or piece_prev_state == white)
               and piece_new_state == nothing):
-            self.piece_selected.emit(self.board_current_state)
+            self.signals.piece_selected.emit(self.board_current_state)
         
         elif ((piece_prev_state == black and piece_new_state == white)
               or (piece_prev_state == white and piece_new_state == black)):
-            self.piece_placed.emit(self.board_current_state)
+            self.signals.piece_placed.emit(self.board_current_state)
             
     def read_sensors(self):
         while True:
@@ -131,12 +134,9 @@ class SensorRead(QObject):
         
 class SensorReadMock(QObject):
     
-
-    piece_selected = pyqtSignal(list)
-    piece_placed = pyqtSignal(list)
-
-    def __init__(self, coreGame):
+    def __init__(self):
         super().__init__()
+        self.signals = SensorSignals()
         self.state = [
             [
                 1, 1, 1, 1, 1, 1, 1, 1,
@@ -170,37 +170,33 @@ class SensorReadMock(QObject):
             ]
         ]
 
-        self.coreGame = coreGame
-        self.add_piece_selected_slot(coreGame.on_piece_selected)
         self.board_current_state = []
         for i in range(64):
             self.board_current_state.append(nothing)
         
     def add_piece_selected_slot(self, slot):
-        self.piece_selected.connect(slot)
+        self.signals.piece_selected.connect(slot)
 
     def add_piece_placed_slot(self, slot):
-        self.piece_placed.connect(slot)
+        self.signals.piece_placed.connect(slot)
     
     def state_logic(self, i, j, piece_prev_state, piece_new_state):
         self.board_current_state[i*8 + j] = piece_new_state
         if (piece_prev_state == nothing
             and (piece_new_state == black or piece_new_state == white)):
-            self.piece_placed.emit(self.board_current_state)
+            self.signals.piece_placed.emit(self.board_current_state)
         
         elif ((piece_prev_state == black or piece_prev_state == white)
               and piece_new_state == nothing):
-            self.piece_selected.emit(self.board_current_state)
+            self.signals.piece_selected.emit(self.board_current_state)
         
         elif ((piece_prev_state == black and piece_new_state == white)
               or (piece_prev_state == white and piece_new_state == black)):
-            self.piece_placed.emit(self.board_current_state)
-
+            self.signals.piece_placed.emit(self.board_current_state)
+            
+    @pyqtSlot()
     def read_sensors(self):
-        while True:
-            for state_index in range(2):
-                for i in range(8):
-                    for j in range(8):
-                        self.state_logic(i, j, self.state[state_index][i*8 + j], self.state[state_index + 1][i*8 + j])
-                        time.sleep(0)
-
+        for state_index in range(2):
+            for i in range(8):
+                for j in range(8):
+                    self.state_logic(i, j, self.state[state_index][i*8 + j], self.state[state_index + 1][i*8 + j])
