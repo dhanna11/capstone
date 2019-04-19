@@ -93,10 +93,10 @@ class sensorRead(QObject):
         else:
             GPIO.output(21, False)
 
-    current_state = []
+    board_current_state = []
 
     for i in range(64):
-        current_state.append(nothing)
+        board_current_state.append(nothing)
 
 
     def print_value(y):
@@ -107,14 +107,17 @@ class sensorRead(QObject):
         elif y == white:
             print("white ", end ='')
             
-    def state_logic(i, j, prev_state, new_state):
-        current_state[i*8 + j] = new_state
-        if prev_state == nothing and (new_state == black or new_state == white):
-            piece_placed.emit(new_state)
-        elif (prev_state == black or prev_state == white) and new_state == nothing:
-            piece_selected.emit(new_state)
-        elif (prev_state == black and new_state == white) or (prev_state == white and new_state == black):
-            piece_placed.emit(new_state)
+    def state_logic(i, j, piece_prev_state, piece_new_state):
+        board_current_state[i*8 + j] = new_piece_state
+        if (piece_prev_state == nothing
+            and (piece_new_state == black or piece_new_state == white)):
+            piece_placed.emit(board_current_state)
+        elif ((piece_prev_state == black or piece_prev_state == white)
+              and piece_new_state == nothing):
+            piece_selected.emit(board_current_state)
+        elif ((piece_prev_state == black and piece_new_state == white)
+              or (piece_prev_state == white and piece_new_state == black)):
+            piece_placed.emit(board_current_state)
             
     def read_sensors():
         while True:
@@ -124,11 +127,11 @@ class sensorRead(QObject):
                 for j in range(8):
                     control_col_mux(j)
                     x = interpret(chan_0.value)
-                    self.state_logic(i, j, current_state[i*8 +j], x)
+                    self.state_logic(i, j, board_current_state[i*8 +j], x)
 
             print ("current state of board:")
             for i in range(64):
-                print_value(current_state[i])
+                print_value(board_current_state[i])
                 if i % 8 == 7:
                     print("\n")
             time.sleep(0.5)
