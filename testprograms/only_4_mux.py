@@ -77,6 +77,7 @@ while True:
             control_mux(i)
             #time.sleep(1)
             x = interpret(chan_0.value)
+            print(time.time())
             current_state[i] = x
             #print(x)
             print(chan_0.value)
@@ -84,6 +85,7 @@ while True:
         else:
             #time.sleep(1)
             x = interpret(chan_1.value)
+            print(time.time())
             current_state[i] = x
             #print(x)
             print(chan_1.value)
