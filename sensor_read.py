@@ -99,7 +99,8 @@ class SensorRead(QObject):
             print("black ", end ='')
         elif y == white:
             print("white ", end ='')
-            
+
+    # TODO: Handle new_piece_state being illegal        
     def state_logic(self,i, j, piece_prev_state, piece_new_state):
         self.board_current_state[i*8 + j] = new_piece_state
         if (piece_prev_state == nothing
@@ -114,22 +115,21 @@ class SensorRead(QObject):
               or (piece_prev_state == white and piece_new_state == black)):
             self.signals.piece_placed.emit(self.board_current_state)
             
+    @pyqtSlot()
     def read_sensors(self):
-        while True:
-            #sweep through inputs on mux
-            for i in range(8):
-                control_row_mux(i)
-                for j in range(8):
-                    control_col_mux(j)
-                    x = interpret(chan_0.value)
-                    self.state_logic(i, j, self.board_current_state[i*8 +j], x)
+        #sweep through inputs on mux
+        for i in range(8):
+            control_row_mux(i)
+            for j in range(8):
+                control_col_mux(j)
+                x = interpret(chan_0.value)
+                self.state_logic(i, j, self.board_current_state[i*8 +j], x)
 
-            print ("current state of board:")
-            for i in range(64):
-                print_value(self.board_current_state[i])
-                if i % 8 == 7:
-                    print("\n")
-            time.sleep(0.5)
+        print ("current state of board:")
+        for i in range(64):
+            print_value(self.board_current_state[i])
+            if i % 8 == 7:
+                print("\n")
                 
         
 class SensorReadMock(QObject):

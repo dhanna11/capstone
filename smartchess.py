@@ -69,13 +69,17 @@ class utils():
         return l
 
 class CoreGame(QObject):
+
+    illegal_move = pyqtSignal()
+    game_over = pyqtSignal()
+    make_move = pyqtSignal()
     
-    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
+    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100):
         super().__init__()
         self.gui = gui
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
-        self.time = time
+        self.stockfishTime = stockfishTime
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
         self.gui.renderer().load(xml)
@@ -119,7 +123,7 @@ class CoreGame(QObject):
         if not self.isMultiplayer:
             # Launch stockfish, ask for a move, then terminate. 
             engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
-            result = engine.play(self.board, chess.engine.Limit(time=self.time))
+            result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
             engine.quit()
             self.board.push(result.move)
             xml = QXmlStreamReader()
