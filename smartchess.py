@@ -8,10 +8,9 @@ import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
+from sensor_read import SensorReadMock
 
-#from sensor_read import sensorRead
-from sensor_read_mock import SensorMock
 class utils():
     @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
@@ -70,15 +69,22 @@ class utils():
         return l
 
 class CoreGame(QObject):
+
+    illegal_move = pyqtSignal()
+    game_over = pyqtSignal()
+    make_move = pyqtSignal()
     
-    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, time: float = 0.100):
+    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100):
         super().__init__()
         self.gui = gui
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
-        self.time = time
+        self.stockfishTime = stockfishTime
+        xml = QXmlStreamReader()
+        xml.addData(chess.svg.board(board=self.board))
+        self.gui.renderer().load(xml)
         
-    @pyqtSlot()
+    @pyqtSlot(list)
     def on_piece_selected(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
         source_square = utils.BoardChangeToSourceSquare(
@@ -95,9 +101,9 @@ class CoreGame(QObject):
         xml = QXmlStreamReader()                
         xml.addData(chess.svg.board(board=self.board, squares=squareSet,
             arrows=arrows))
-        self.gui.load(xml)
+        self.gui.renderer().load(xml)
 
-    @pyqtSlot()
+    @pyqtSlot(list)
     def on_piece_placed(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
         move = utils.BoardChangeToMove(newboardArray, oldboardArray)
@@ -117,7 +123,7 @@ class CoreGame(QObject):
         if not self.isMultiplayer:
             # Launch stockfish, ask for a move, then terminate. 
             engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
-            result = engine.play(self.board, chess.engine.Limit(time=self.time))
+            result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
             engine.quit()
             self.board.push(result.move)
             xml = QXmlStreamReader()
@@ -138,18 +144,17 @@ class SmartChessGui(QSvgWidget):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.textbox = QLineEdit(self)
         self.show()
 
-    def renderXML(self, xml):
-        self.gui.renderer().load(xml)
-        
-        
 class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
-        self.sensorRead = SensorMock(self.coreGame)
+        self.sensorRead = SensorReadMock()
+        self.sensorRead.add_piece_placed_slot(self.coreGame.on_piece_selected)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.sensorRead.read_sensors)
+        self.timer.start(1000)
         sys.exit(self.app.exec_())
 
 def main():
