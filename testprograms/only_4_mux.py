@@ -75,8 +75,15 @@ while True:
         print ("currently checking :", i)
         if 0 <= i and i <= 2:
             control_mux(i)
-            #time.sleep(0.05)
-            current_value = chan_0.value
+            time.sleep(0.05)
+            t_end = time.time() + 0.01
+            avg_value = 0
+            count = 0
+            while time.time() < t_end:
+                avg_value += chan_0.value
+                count += 1
+                print(count)
+            current_value = avg_value/count
             print(current_value) 
             x = interpret(current_value)
             print(x)
@@ -84,8 +91,14 @@ while True:
             print_value(x)
         #adc input
         else:
-            #time.sleep(1)
-            current_value = chan_1.value
+            t_end = time.time() + 0.01
+            avg_value = 0
+            count = 0
+            while time.time() < t_end:
+                avg_value += chan_1.value
+                count += 1
+                print(count)
+            current_value = avg_value/count
             x = interpret(current_value)
             current_state[i] = x
             print(current_value)
