@@ -24,22 +24,22 @@ chan_1 = AnalogIn(ads, ADS.P1)
 chan_2 = AnalogIn(ads, ADS.P2)
 chan_3 = AnalogIn(ads, ADS.P3)
 
-nothing = 0
-white = 1
-black = 2
+nothing = -1
+white = 0
+black = 1
 
 def interpret(voltage):
-    if 315 <= voltage and voltage <= 730:
+    print("inside interpret")
+    print(voltage)
+    if 315 <= voltage and voltage <= 750:
         #print ("nothing")
         return nothing
-    elif voltage <= 310:
+    elif voltage < 315:
         #print("white")
         return white
     elif 750 < voltage:
         #print ("black")
         return black
-    #else:
-     #   print ("error")
 
 
 #function to control based on number input (0-7)
@@ -75,23 +75,25 @@ while True:
         print ("currently checking :", i)
         if 0 <= i and i <= 2:
             control_mux(i)
-            #time.sleep(1)
-            x = interpret(chan_0.value)
-            print(time.time())
+            #time.sleep(0.05)
+            current_value = chan_0.value
+            print(current_value) 
+            x = interpret(current_value)
+            print(x)
             current_state[i] = x
-            #print(x)
-            print(chan_0.value)
+            print_value(x)
         #adc input
         else:
             #time.sleep(1)
-            x = interpret(chan_1.value)
-            print(time.time())
+            current_value = chan_1.value
+            x = interpret(current_value)
             current_state[i] = x
-            #print(x)
-            print(chan_1.value)
-        print_value(current_state[i])
+            print(current_value)
+            print(x)
+            print_value(x)
+        #print_value(current_state[i])
         print("\n")
-        #time.sleep(0.5)
+        time.sleep(0.5)
 
     print ("current state of board:")
     for i in range(4):
