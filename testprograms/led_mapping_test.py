@@ -10,6 +10,6 @@ def led_index(raw_index):
 
 def main():
     print("simple test for mapping raw index on board to led index")
-    led_index(7)
+    led_index(14)
 
 main()
