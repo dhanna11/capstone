@@ -13,10 +13,11 @@ white = 0
 black = 1
 
 class SensorRead(QObject):
-        
+
+    new_physical_board_state = pyqtSignal(list)
+    
     def __init__(self):
         super(SensorRead, self).__init__()
-        self.new_physical_board_state = pyqtSignal(list)
         
         # Create the I2C bus
         i2c = busio.I2C(board.SCL, board.SDA)
@@ -102,10 +103,11 @@ class SensorRead(QObject):
         self.new_physical_board_state.emit(new_physical_board_state)
         
 class SensorReadMock(QObject):
+
+    new_physical_board_state = pyqtSignal(list)
     
     def __init__(self):
         super().__init__()
-        self.new_physical_board_state = pyqtSignal(list)
         self.state_index = 0;
         self.state = [
             [
@@ -143,7 +145,8 @@ class SensorReadMock(QObject):
     def add_new_physical_board_state_slot(self, slot):
         self.new_physical_board_state.connect(slot)
     
-    @pystSlot()
+    @pyqtSlot()
     def read_sensors(self):
-        self.new_physical_board_state.emit(self.state[self.state_index])
-        self.state_index += 1
+        if self.state_index < len(self.state):
+            self.new_physical_board_state.emit(self.state[self.state_index])
+            self.state_index += 1
