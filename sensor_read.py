@@ -38,15 +38,16 @@ class SensorRead(QObject):
         GPIO.setup(21, GPIO.OUT)
             
     def interpret(voltage):
-        if 315 <= voltage and voltage <= 730:
+        if 315 <= voltage and voltage <= 750:
             #print ("nothing")
             return nothing
-        elif voltage <= 310:
+        elif voltage < 315:
             #print("white")
             return white
         elif 750 < voltage:
             #print ("black")
             return black
+
 
     #function to control based on number input (0-7)
     def control_row_mux(x):
