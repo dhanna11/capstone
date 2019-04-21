@@ -85,19 +85,42 @@ class CoreGame(QObject):
         self.gui = gui
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
+        self.catchUpRequired = False
         self.stockfishTime = stockfishTime
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
         self.gui.renderer().load(xml)
-
+        
     def on_new_physical_board_state(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
         (source_square, dest_square) = utils.InterpreteBoardChange(newboardArray, oldboardArray)
-        if (source_square is not None and dest_square is None):
-            self.on_piece_selected(source_square)
-        elif (source_square is not None and dest_square is not None):
-            self.on_piece_placed(chess.Move(source_square, dest_square))
+        # If stockfish or remote player makes a move, the local player needs to manipulate the
+        # board to match the current state
+        if self.catchUpRequired:
+            if (source_square is not None and dest_square is None):
+                self.on_piece_selected_catchup(source_square)
+            elif (source_square is not None and dest_square is not None):
+                self.on_piece_placed_catchup(chess.Move(source_square, dest_square))
+        else:
+            if (source_square is not None and dest_square is None):
+                self.on_piece_selected(source_square)
+            elif (source_square is not None and dest_square is not None):
+                self.on_piece_placed(chess.Move(source_square, dest_square))
 
+    def on_piece_selected_catchup(self, source_square):
+        if (source_square == self.board.peek().from_square):
+            # TODO: Light up LED of to_square
+            pass
+        else:
+            print("Error! Picked up wrong piece")
+
+    def on_piece_placed_catchup(self, move):
+        if (move.from_square == self.board.peek().from_square) and (move.to_square == self.board.peek().to_square):
+            self.catchUpRequired = False
+            # TODO: Smart clock manipulation?
+        else:
+            print("Error! Picked up wrong piece")
+            
     def on_piece_selected(self, source_square):
         squareSet = chess.SquareSet()
         for move in self.board.legal_moves:
@@ -132,6 +155,7 @@ class CoreGame(QObject):
             result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
             engine.quit()
             self.board.push(result.move)
+            self.catchUpRequired = True
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))
             self.gui.renderer().load(xml)
