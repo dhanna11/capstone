@@ -158,7 +158,7 @@ class SmartChess():
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
         self.sensorRead = SensorReadMock()
-        self.sensorRead.add_new_physical_board_state_slot(coreGame.on_new_physical_board_state)
+        self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
         self.timer.timeout.connect(self.sensorRead.read_sensors)
         self.timer.start(1000)        
