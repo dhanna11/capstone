@@ -11,6 +11,10 @@ from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
 from sensor_read import SensorReadMock
 
+nothing = -1
+white = 0
+black = 1
+
 class utils():
     @staticmethod
     def BoardChangeToSourceSquare(newboardArray, oldboardArray):
@@ -18,33 +22,35 @@ class utils():
         assert (len(newboardArray) == 64)
 
         for i in range(64):
-            if (newboardArray[i] == -1) and (oldboardArray[i] != -1):
+            if (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
                 return i
         # should find a difference. Error out if not
         assert (false)
 
     @staticmethod
-    def BoardChangeToMove(newboardArray, oldboardArray):
+    def InterpreteBoardChange(newboardArray, oldboardArray):
         assert (len(newboardArray) == len(oldboardArray))
+        dest_square = None
+        source_square = None
         for i in range(len(newboardArray)):
             # Castling handled as rook captures own piece
-            if ((newboardArray[i] != -1) and (oldboardArray[i] == -1)):
+            if ((newboardArray[i] != nothing) and (oldboardArray[i] == nothing)):
                 # white or black move
                 dest_square = i
-            elif (newboardArray[i] == 0) and (oldboardArray[i] == 1):
+            elif (newboardArray[i] == white) and (oldboardArray[i] == black):
                 # black capture
                 dest_square = i
-            elif (newboardArray[i] == 1) and (oldboardArray[i] == 0):
+            elif (newboardArray[i] == black) and (oldboardArray[i] == white):
                 # white capture
                 dest_square = i
-            elif (newboardArray[i] == -1) and (oldboardArray[i] != -1):
+            elif (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
                 # new blank place implies source.
                 # TODO: May break en_pasante captures?
                 source_square = i
             else:
                 assert (newboardArray[i] == oldboardArray[i])
 
-        return chess.Move(source_square, dest_square)
+        return (source_square, dest_square)
 
     # White upper case, 1. Black lowercase, 0
     # Blank negative -1
@@ -83,12 +89,16 @@ class CoreGame(QObject):
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
         self.gui.renderer().load(xml)
-        
-    @pyqtSlot(list)
-    def on_piece_selected(self, newboardArray):
+
+    def on_new_physical_board_state(self, newboardArray):
         oldboardArray = utils.convertFENToTernaryList(self.board.fen())
-        source_square = utils.BoardChangeToSourceSquare(
-            newboardArray, oldboardArray)
+        (source_square, dest_square) = utils.InterpreteBoardChange(newboardArray, oldboardArray)
+        if (source_square is not None and dest_square is None):
+            self.on_piece_selected(source_square)
+        elif (source_square is not None and dest_square is not None):
+            self.on_piece_placed(chess.Move(source_square, dest_square))
+
+    def on_piece_selected(self, source_square):
         squareSet = chess.SquareSet()
         for move in self.board.legal_moves:
             if move.from_square == source_square:
@@ -103,10 +113,7 @@ class CoreGame(QObject):
             arrows=arrows))
         self.gui.renderer().load(xml)
 
-    @pyqtSlot(list)
-    def on_piece_placed(self, newboardArray):
-        oldboardArray = utils.convertFENToTernaryList(self.board.fen())
-        move = utils.BoardChangeToMove(newboardArray, oldboardArray)
+    def on_piece_placed(self, move):
         if move not in self.board.legal_moves:
             # TODO: Send illegal move Message
             print("illegal move detected")
@@ -115,8 +122,7 @@ class CoreGame(QObject):
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
         # TODO: Refactor using Observer pattern
-        self.gui.renderer().load(xml)
-                
+        self.gui.renderer().load(xml)                
         if self.board.is_game_over():
             # TODO: Send game over message
             print("Game Over! Player wins")
@@ -128,6 +134,7 @@ class CoreGame(QObject):
             self.board.push(result.move)
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))
+            self.gui.renderer().load(xml)
             if self.board.is_game_over():
                 print("Game Over! Stockfish Wins!")
                                 
@@ -151,10 +158,10 @@ class SmartChess():
         self.app = QApplication(sys.argv)
         self.coreGame = CoreGame(SmartChessGui())
         self.sensorRead = SensorReadMock()
-        self.sensorRead.add_piece_placed_slot(self.coreGame.on_piece_selected)
+        self.sensorRead.add_new_physical_board_state_slot(coreGame.on_new_physical_board_state)
         self.timer = QTimer()
         self.timer.timeout.connect(self.sensorRead.read_sensors)
-        self.timer.start(1000)
+        self.timer.start(1000)        
         sys.exit(self.app.exec_())
 
 def main():
