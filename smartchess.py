@@ -130,7 +130,7 @@ class CoreGame(QObject):
         xml.addData(chess.svg.board(board=self.board, squares=squares,
             arrows=arrows))
         self.gui.renderer().load(xml)
-        self.ledWriter.write_leds((255,0,0), list(squares))
+        self.ledWriter.write_leds((255,255,0), list(squares))
         
     def on_piece_placed(self, move):
         if move not in self.board.legal_moves:
@@ -151,6 +151,7 @@ class CoreGame(QObject):
             result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
             engine.quit()
             self.board.push(result.move)
+            self.ledWriter.clear_leds()
             self.catchUpRequired = True
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))

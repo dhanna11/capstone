@@ -33,6 +33,7 @@ class LEDWriter(QObject):
 
     def write_leds(self, color, indices):
         for index in indices:
+            print(self.led_index(index))
             self.pixels[self.led_index(index)] = color
         self.pixels.show()
 

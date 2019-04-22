@@ -1,3 +1,8 @@
+#!/usr/bin/python3
+import sys
+# Need when run as sudo
+sys.path.append("/home/pi/.local/lib/python3.5/site-packages/")
+
 import time
 import board
 import neopixel
