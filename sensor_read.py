@@ -7,11 +7,39 @@ import busio
 from PyQt5.QtCore import QObject, pyqtSignal, QRunnable, pyqtSlot
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
+import neopixel
 
 nothing = -1
 white = 0
 black = 1
 
+class LEDWriter(QObject):
+    def __init__(self):
+        super(LEDWriter, self).__init__()
+        self.pixel_pin = board.D18
+        self.num_pixels = 64
+        self.ORDER = neopixel.GRB
+        self.pixels = neopixel.NeoPixel(self.pixel_pin, self.num_pixels, brightness=0.2, auto_write=False, pixel_order=self.ORDER)
+
+    def led_index(self, raw_index):
+        #only change for odd rows
+        if(raw_index % 16 >= 8):
+            row = raw_index//8
+            add_index = 8 * (row+1) - 1 - raw_index
+            led_index = 8*row + add_index
+            return led_index
+        else:
+            return raw_index
+
+    def write_leds(self, color, indices):
+        for index in indices:
+            self.pixels[self.led_index(index)] = color
+        self.pixels.show()
+
+    def clear_leds(self ):
+        self.pixels.fill((0, 0, 0))
+        self.pixels.show()
+        
 class SensorRead(QObject):
 
     new_physical_board_state = pyqtSignal(list)

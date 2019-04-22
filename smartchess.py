@@ -1,88 +1,83 @@
 #!/usr/bin/python3
-
+import sys
+# Need when run as sudo
+sys.path.append("/home/pi/.local/lib/python3.5/site-packages/")
 import chess
 import chess.engine
 import chess.svg
 import queue
-import sys
 import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
-from sensor_read import SensorReadMock
+from sensor_read import SensorReadMock, LEDWriter
+
 
 nothing = -1
 white = 0
 black = 1
 
-class utils():
-    @staticmethod
-    def BoardChangeToSourceSquare(newboardArray, oldboardArray):
-        assert (len(newboardArray) == len(oldboardArray))
-        assert (len(newboardArray) == 64)
+def BoardChangeToSourceSquare(newboardArray, oldboardArray):
+    assert (len(newboardArray) == len(oldboardArray))
+    assert (len(newboardArray) == 64)
 
-        for i in range(64):
-            if (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
-                return i
+    for i in range(64):
+        if (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
+            return i
         # should find a difference. Error out if not
-        assert (false)
+    assert (false)
 
-    @staticmethod
-    def InterpreteBoardChange(newboardArray, oldboardArray):
-        assert (len(newboardArray) == len(oldboardArray))
-        dest_square = None
-        source_square = None
-        for i in range(len(newboardArray)):
-            # Castling handled as rook captures own piece
-            if ((newboardArray[i] != nothing) and (oldboardArray[i] == nothing)):
-                # white or black move
-                dest_square = i
-            elif (newboardArray[i] == white) and (oldboardArray[i] == black):
-                # black capture
-                dest_square = i
-            elif (newboardArray[i] == black) and (oldboardArray[i] == white):
-                # white capture
-                dest_square = i
-            elif (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
-                # new blank place implies source.
-                # TODO: May break en_pasante captures?
-                source_square = i
-            else:
-                assert (newboardArray[i] == oldboardArray[i])
+def interpreteBoardChange(newboardArray, oldboardArray):
+    assert (len(newboardArray) == len(oldboardArray))
+    dest_square = None
+    source_square = None
+    for i in range(len(newboardArray)):
+        # Castling handled as rook captures own piece
+        if ((newboardArray[i] != nothing) and (oldboardArray[i] == nothing)):
+            # white or black move
+            dest_square = i
+        elif (newboardArray[i] == white) and (oldboardArray[i] == black):
+            # black capture
+            dest_square = i
+        elif (newboardArray[i] == black) and (oldboardArray[i] == white):
+            # white capture
+            dest_square = i
+        elif (newboardArray[i] == nothing) and (oldboardArray[i] != nothing):
+            # new blank place implies source.
+            # TODO: May break en_pasante captures?
+            source_square = i
+        else:
+            assert (newboardArray[i] == oldboardArray[i])
 
-        return (source_square, dest_square)
+    return (source_square, dest_square)
 
-    # White upper case, 1. Black lowercase, 0
-    # Blank negative -1
-    # Order matters
-    # FEN record starts from rank 8 and ends with rank 1
-    # and from file "a" to file "h"
-    @staticmethod
-    def convertFENToTernaryList(fen_str):
-        l = []
-        fen_str_board = fen_str.split(" ")[0]
-        fen_rows = fen_str_board.split("/")
-        for string_row in fen_rows[::-1]:
-            for c in string_row:
-                if (c.isnumeric()):
-                    l.extend([-1] * int(c))
-                elif (c.islower()):
-                    l.append(0)
-                elif (c.isupper()):
-                    l.append(1)
+# White upper case, 1. Black lowercase, 0
+# Blank negative -1
+# Order matters
+# FEN record starts from rank 8 and ends with rank 1
+# and from file "a" to file "h"
+def convertFENToTernaryList(fen_str):
+    l = []
+    fen_str_board = fen_str.split(" ")[0]
+    fen_rows = fen_str_board.split("/")
+    for string_row in fen_rows[::-1]:
+        for c in string_row:
+            if (c.isnumeric()):
+                l.extend([-1] * int(c))
+            elif (c.islower()):
+                l.append(0)
+            elif (c.isupper()):
+                l.append(1)
 
-        assert (len(l) == 64)
-        return l
+    assert (len(l) == 64)
+    return l
 
 class CoreGame(QObject):
-
-    illegal_move = pyqtSignal()
-    game_over = pyqtSignal()
-    make_move = pyqtSignal()
     
     def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100):
         super().__init__()
         self.gui = gui
+        self.ledWriter = LEDWriter()
         self.isMultiplayer = isMultiplayer
         self.board = chess.Board()
         self.catchUpRequired = False
@@ -92,8 +87,8 @@ class CoreGame(QObject):
         self.gui.renderer().load(xml)
         
     def on_new_physical_board_state(self, newboardArray):
-        oldboardArray = utils.convertFENToTernaryList(self.board.fen())
-        (source_square, dest_square) = utils.InterpreteBoardChange(newboardArray, oldboardArray)
+        oldboardArray = convertFENToTernaryList(self.board.fen())
+        (source_square, dest_square) = interpreteBoardChange(newboardArray, oldboardArray)
         # If stockfish or remote player makes a move, the local player needs to manipulate the
         # board to match the current state
         if self.catchUpRequired:
@@ -122,20 +117,21 @@ class CoreGame(QObject):
             print("Error! Picked up wrong piece")
             
     def on_piece_selected(self, source_square):
-        squareSet = chess.SquareSet()
+        squares = chess.SquareSet()
         for move in self.board.legal_moves:
             if move.from_square == source_square:
-                squareSet.add(move.to_square)
+                squares.add(move.to_square)
         # draw a circle by drawing an arrow
         arrows = [
             chess.svg.Arrow(
                 source_square, source_square, color="black")
         ]
         xml = QXmlStreamReader()                
-        xml.addData(chess.svg.board(board=self.board, squares=squareSet,
+        xml.addData(chess.svg.board(board=self.board, squares=squares,
             arrows=arrows))
         self.gui.renderer().load(xml)
-
+        self.ledWriter.write_leds((255,0,0), list(squares))
+        
     def on_piece_placed(self, move):
         if move not in self.board.legal_moves:
             # TODO: Send illegal move Message
