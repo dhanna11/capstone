@@ -104,8 +104,8 @@ class CoreGame(QObject):
 
     def on_piece_selected_catchup(self, source_square):
         if (source_square == self.board.peek().from_square):
-            # TODO: Light up LED of to_square
-            pass
+            self.ledWriter.clear_leds()
+            self.ledWriter.write_leds((0,255,0), list(self.board.peek().to_square))
         else:
             print("Error! Picked up wrong piece")
 
@@ -130,28 +130,27 @@ class CoreGame(QObject):
         xml.addData(chess.svg.board(board=self.board, squares=squares,
             arrows=arrows))
         self.gui.renderer().load(xml)
-        self.ledWriter.write_leds((255,255,0), list(squares))
+        self.ledWriter.write_leds((255,0,0), list(squares))
         
     def on_piece_placed(self, move):
         if move not in self.board.legal_moves:
-            # TODO: Send illegal move Message
             print("illegal move detected")
             return                
         self.board.push(move)
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
-        # TODO: Refactor using Observer pattern
         self.gui.renderer().load(xml)                
         if self.board.is_game_over():
-            # TODO: Send game over message
             print("Game Over! Player wins")
         if not self.isMultiplayer:
             # Launch stockfish, ask for a move, then terminate. 
             engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
             result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
             engine.quit()
-            self.board.push(result.move)
+            # light up square to move stockfish piece
             self.ledWriter.clear_leds()
+            self.ledWriter.write_leds((0,255,0), list(result.move.from_square))
+            self.board.push(result.move)
             self.catchUpRequired = True
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))
@@ -181,7 +180,7 @@ class SmartChess():
         self.sensorRead = SensorReadMock()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
-        self.timer.timeout.connect(self.sensorRead.read_sensors)
+        self.timer.timeout.connect(self.sensorRead.read_sensors_demo)
         self.timer.start(1000)        
         sys.exit(self.app.exec_())
 

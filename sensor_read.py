@@ -54,8 +54,9 @@ class SensorRead(QObject):
         # Create the ADC object using the I2C bus
         ads = ADS.ADS1015(i2c)
 
-        # Create single-ended input on channel 0
+        # Create single-ended input on channel 1 and 2
         chan_0 = AnalogIn(ads, ADS.P0)     
+        chan_1 = AnalogIn(ads, ADS.P1)
 
         #row pins
         GPIO.setup(13, GPIO.OUT)
@@ -118,7 +119,45 @@ class SensorRead(QObject):
 
     def add_new_physical_board_state_slot(self, slot):
         self.new_physical_board_state.connect(slot)
-        
+
+    def read_sensors_demo(self):
+        for i in range(4):
+            #mux inputs
+            print ("currently checking :", i)
+            if 0 <= i and i <= 2:
+                control_mux(i)
+                time.sleep(0.05)
+                t_end = time.time() + 0.01
+                avg_value = 0
+                count = 0
+                while time.time() < t_end:
+                    avg_value += chan_0.value
+                    count += 1
+                    print(count)
+                    current_value = avg_value/count
+                    print(current_value) 
+                    x = interpret(current_value)
+                    print(x)
+                    current_state[i] = x
+                    print_value(x)
+                    #adc input
+            else:
+                t_end = time.time() + 0.01
+                avg_value = 0
+                count = 0
+                while time.time() < t_end:
+                    avg_value += chan_1.value
+                    count += 1
+                    print(count)
+                    current_value = avg_value/count
+                    x = interpret(current_value)
+                    current_state[i] = x
+                    print(current_value)
+                    print(x)
+                    print_value(x)
+                    print("\n")
+                    time.sleep(0.5)
+
     def read_sensors(self):
         new_physical_board_state = []
         #sweep through inputs on mux
