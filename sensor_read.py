@@ -37,7 +37,7 @@ class LEDWriter(QObject):
             self.pixels[self.led_index(index)] = color
         self.pixels.show()
 
-    def clear_leds(self ):
+    def clear_leds(self):
         self.pixels.fill((0, 0, 0))
         self.pixels.show()
         
@@ -121,6 +121,7 @@ class SensorRead(QObject):
         self.new_physical_board_state.connect(slot)
 
     def read_sensors_demo(self):
+        new_physical_board_state = [i for i in range(64)]
         for i in range(4):
             #mux inputs
             print ("currently checking :", i)
@@ -138,8 +139,8 @@ class SensorRead(QObject):
                     print(current_value) 
                     x = interpret(current_value)
                     print(x)
-                    current_state[i] = x
                     print_value(x)
+                    new_physical_board_state[i] = x
                     #adc input
             else:
                 t_end = time.time() + 0.01
@@ -151,12 +152,14 @@ class SensorRead(QObject):
                     print(count)
                     current_value = avg_value/count
                     x = interpret(current_value)
-                    current_state[i] = x
                     print(current_value)
                     print(x)
                     print_value(x)
+                    new_physical_board_state[i] = x
                     print("\n")
                     time.sleep(0.5)
+
+        self.new_physical_board_state.emit(new_physical_board_state)
 
     def read_sensors(self):
         new_physical_board_state = []

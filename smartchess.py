@@ -16,6 +16,12 @@ from sensor_read import SensorReadMock, LEDWriter
 nothing = -1
 white = 0
 black = 1
+red = (255, 0, 0)
+green = (0, 255, 0)
+blue = (0, 0, 255)
+possible_move_color = red
+piece_shadow_color = blue
+piece_catchup_color = green
 
 def BoardChangeToSourceSquare(newboardArray, oldboardArray):
     assert (len(newboardArray) == len(oldboardArray))
@@ -85,6 +91,15 @@ class CoreGame(QObject):
         xml = QXmlStreamReader()
         xml.addData(chess.svg.board(board=self.board))
         self.gui.renderer().load(xml)
+        self.ledWriter.clear_leds()
+        self.draw_base_board()
+        
+    def draw_base_board(self):
+        piece_indices = []
+        for i in range(64):
+            if self.board.piece_at(i) is not None:
+                piece_indices.append(i)
+        self.ledWriter.write_leds(piece_shadow_color, piece_indices)
         
     def on_new_physical_board_state(self, newboardArray):
         oldboardArray = convertFENToTernaryList(self.board.fen())
