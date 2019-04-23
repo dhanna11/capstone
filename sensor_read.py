@@ -33,7 +33,6 @@ class LEDWriter(QObject):
 
     def write_leds(self, color, indices):
         for index in indices:
-            print(self.led_index(index))
             self.pixels[self.led_index(index)] = color
         self.pixels.show()
 
@@ -181,36 +180,64 @@ class SensorReadMock(QObject):
         super().__init__()
         self.state_index = 0;
         self.state = [
+            # initial state: start of array is a0. Opposite of displayed SVG
+            # A1, B1, C1, D1, E1, F1, G1, H1
+            
             [
-                1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1, 1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black
             ],
+            # white selects h2
             [
-                1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black,
             ],
+            # white plays h2h4
             [
-                1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1, 1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                -1,-1,-1,-1,-1,-1,-1,-1,
-                0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
-            ]
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+            # we hardcode black to play e7e5. Player needs to pick up e7
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, nothing, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+            # place e5
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,black,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, nothing, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+
         ]
         
     def add_new_physical_board_state_slot(self, slot):

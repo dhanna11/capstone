@@ -57,8 +57,8 @@ def interpreteBoardChange(newboardArray, oldboardArray):
 
     return (source_square, dest_square)
 
-# White upper case, 1. Black lowercase, 0
-# Blank negative -1
+# White upper case.
+# Black lowercase.
 # Order matters
 # FEN record starts from rank 8 and ends with rank 1
 # and from file "a" to file "h"
@@ -71,9 +71,9 @@ def convertFENToTernaryList(fen_str):
             if (c.isnumeric()):
                 l.extend([-1] * int(c))
             elif (c.islower()):
-                l.append(0)
+                l.append(black)
             elif (c.isupper()):
-                l.append(1)
+                l.append(white)
 
     assert (len(l) == 64)
     return l
@@ -102,34 +102,41 @@ class CoreGame(QObject):
         self.ledWriter.write_leds(piece_shadow_color, piece_indices)
         
     def on_new_physical_board_state(self, newboardArray):
-        oldboardArray = convertFENToTernaryList(self.board.fen())
-        (source_square, dest_square) = interpreteBoardChange(newboardArray, oldboardArray)
         # If stockfish or remote player makes a move, the local player needs to manipulate the
         # board to match the current state
         if self.catchUpRequired:
-            if (source_square is not None and dest_square is None):
-                self.on_piece_selected_catchup(source_square)
+            # temporarily pop-off previous stockfish move
+            stockfishmove = self.board.pop()
+            oldboardArray = convertFENToTernaryList(self.board.fen())
+            (source_square, dest_square) = interpreteBoardChange(newboardArray, oldboardArray)
+            if (source_square is not None and dest_square is None):            
+                self.on_piece_selected_catchup(source_square, stockfishmove)
             elif (source_square is not None and dest_square is not None):
-                self.on_piece_placed_catchup(chess.Move(source_square, dest_square))
+                self.on_piece_placed_catchup(chess.Move(source_square, dest_square), stockfishmove)
+            self.board.push(stockfishmove)
         else:
+            oldboardArray = convertFENToTernaryList(self.board.fen())
+            (source_square, dest_square) = interpreteBoardChange(newboardArray, oldboardArray)
             if (source_square is not None and dest_square is None):
                 self.on_piece_selected(source_square)
             elif (source_square is not None and dest_square is not None):
                 self.on_piece_placed(chess.Move(source_square, dest_square))
 
-    def on_piece_selected_catchup(self, source_square):
-        if (source_square == self.board.peek().from_square):
-            self.ledWriter.clear_leds()
-            self.ledWriter.write_leds((0,255,0), list(self.board.peek().to_square))
+    def on_piece_selected_catchup(self, source_square, stockfishmove):
+        if (source_square == stockfishmove.from_square):
+            # light up destination square for piece
+            self.ledWriter.write_leds((0,255,0), [self.board.peek().to_square])
         else:
-            print("Error! Picked up wrong piece")
+            print("Error! Picked up wrong piece from square ", chess.SQUARE_NAMES[source_square])
 
-    def on_piece_placed_catchup(self, move):
-        if (move.from_square == self.board.peek().from_square) and (move.to_square == self.board.peek().to_square):
+    def on_piece_placed_catchup(self, catchupmove, stockfishmove):
+        if (catchupmove.from_square == stockfishmove.from_square) and (catchupmove.to_square == stockfishmove.to_square):
             self.catchUpRequired = False
+            self.ledWriter.clear_leds()
+            self.draw_base_board()
             # TODO: Smart clock manipulation?
         else:
-            print("Error! Picked up wrong piece")
+            print("Error! Played wrong move", move)
             
     def on_piece_selected(self, source_square):
         squares = chess.SquareSet()
@@ -161,11 +168,13 @@ class CoreGame(QObject):
             # Launch stockfish, ask for a move, then terminate. 
             engine = chess.engine.SimpleEngine.popen_uci("/usr/local/bin/stockfish")
             result = engine.play(self.board, chess.engine.Limit(time=self.stockfishTime))
-            engine.quit()
+            engine.quit()            
             # light up square to move stockfish piece
             self.ledWriter.clear_leds()
-            self.ledWriter.write_leds((0,255,0), list(result.move.from_square))
-            self.board.push(result.move)
+            self.ledWriter.write_leds((0,255,0), [result.move.from_square])
+            self.draw_base_board()
+            # self.board.push(result.move)
+            self.board.push(chess.Move(chess.E7, chess.E5))
             self.catchUpRequired = True
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))
@@ -195,7 +204,7 @@ class SmartChess():
         self.sensorRead = SensorReadMock()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
-        self.timer.timeout.connect(self.sensorRead.read_sensors_demo)
+        self.timer.timeout.connect(self.sensorRead.read_sensors)
         self.timer.start(1000)        
         sys.exit(self.app.exec_())
 
