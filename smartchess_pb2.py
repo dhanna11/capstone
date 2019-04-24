@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x10smartchess.proto\"%\n\rSensorRequest\x12\x14\n\x0csensorValues\x18\x01 \x03(\x05\"\x1d\n\x0eSensorResponse\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x05\x32\x41\n\nSensorRead\x12\x33\n\x0esendSensorData\x12\x0e.SensorRequest\x1a\x0f.SensorResponse\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x10smartchess.proto\"\x0f\n\rSensorRequest\"&\n\x0eSensorResponse\x12\x14\n\x0csensorValues\x18\x01 \x03(\x05\x32\x44\n\rRemoteBoardIO\x12\x33\n\x0eSendSensorData\x12\x0e.SensorRequest\x1a\x0f.SensorResponse\"\x00\x62\x06proto3')
 )
 
 
@@ -33,8 +33,32 @@ _SENSORREQUEST = _descriptor.Descriptor(
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=20,
+  serialized_end=35,
+)
+
+
+_SENSORRESPONSE = _descriptor.Descriptor(
+  name='SensorResponse',
+  full_name='SensorResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
     _descriptor.FieldDescriptor(
-      name='sensorValues', full_name='SensorRequest.sensorValues', index=0,
+      name='sensorValues', full_name='SensorResponse.sensorValues', index=0,
       number=1, type=5, cpp_type=1, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -52,39 +76,8 @@ _SENSORREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=20,
-  serialized_end=57,
-)
-
-
-_SENSORRESPONSE = _descriptor.Descriptor(
-  name='SensorResponse',
-  full_name='SensorResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='ack', full_name='SensorResponse.ack', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=59,
-  serialized_end=88,
+  serialized_start=37,
+  serialized_end=75,
 )
 
 DESCRIPTOR.message_types_by_name['SensorRequest'] = _SENSORREQUEST
@@ -107,18 +100,18 @@ _sym_db.RegisterMessage(SensorResponse)
 
 
 
-_SENSORREAD = _descriptor.ServiceDescriptor(
-  name='SensorRead',
-  full_name='SensorRead',
+_REMOTEBOARDIO = _descriptor.ServiceDescriptor(
+  name='RemoteBoardIO',
+  full_name='RemoteBoardIO',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=90,
-  serialized_end=155,
+  serialized_start=77,
+  serialized_end=145,
   methods=[
   _descriptor.MethodDescriptor(
-    name='sendSensorData',
-    full_name='SensorRead.sendSensorData',
+    name='SendSensorData',
+    full_name='RemoteBoardIO.SendSensorData',
     index=0,
     containing_service=None,
     input_type=_SENSORREQUEST,
@@ -126,8 +119,8 @@ _SENSORREAD = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_SENSORREAD)
+_sym_db.RegisterServiceDescriptor(_REMOTEBOARDIO)
 
-DESCRIPTOR.services_by_name['SensorRead'] = _SENSORREAD
+DESCRIPTOR.services_by_name['RemoteBoardIO'] = _REMOTEBOARDIO
 
 # @@protoc_insertion_point(module_scope)

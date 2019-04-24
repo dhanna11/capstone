@@ -21,7 +21,7 @@ class SensorReader(smartchess_pb2_grpc.SensorReadServicer):
     def SendSensorData(self, request, context):
         return smartchess_pb2.SensorResponse(self.sensorRead.read_sensors())
 
-def server():
+def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     smartchess_pb2_grpc.add_SensorReadServicer_to_server(SensorReader(), server)
     server.add_insecure_port('[::]:50051')

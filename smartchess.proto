@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-service SensorRead {
+service RemoteBoardIO {
   rpc SendSensorData (SensorRequest) returns (SensorResponse) {}
 }
 

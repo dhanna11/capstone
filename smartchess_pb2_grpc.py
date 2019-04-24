@@ -4,7 +4,7 @@ import grpc
 import smartchess_pb2 as smartchess__pb2
 
 
-class SensorReadStub(object):
+class RemoteBoardIOStub(object):
   # missing associated documentation comment in .proto file
   pass
 
@@ -14,18 +14,18 @@ class SensorReadStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.sendSensorData = channel.unary_unary(
-        '/SensorRead/sendSensorData',
+    self.SendSensorData = channel.unary_unary(
+        '/RemoteBoardIO/SendSensorData',
         request_serializer=smartchess__pb2.SensorRequest.SerializeToString,
         response_deserializer=smartchess__pb2.SensorResponse.FromString,
         )
 
 
-class SensorReadServicer(object):
+class RemoteBoardIOServicer(object):
   # missing associated documentation comment in .proto file
   pass
 
-  def sendSensorData(self, request, context):
+  def SendSensorData(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -33,14 +33,14 @@ class SensorReadServicer(object):
     raise NotImplementedError('Method not implemented!')
 
 
-def add_SensorReadServicer_to_server(servicer, server):
+def add_RemoteBoardIOServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'sendSensorData': grpc.unary_unary_rpc_method_handler(
-          servicer.sendSensorData,
+      'SendSensorData': grpc.unary_unary_rpc_method_handler(
+          servicer.SendSensorData,
           request_deserializer=smartchess__pb2.SensorRequest.FromString,
           response_serializer=smartchess__pb2.SensorResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'SensorRead', rpc_method_handlers)
+      'RemoteBoardIO', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))
