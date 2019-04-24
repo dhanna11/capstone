@@ -29,8 +29,8 @@ white = 0
 black = 1
 
 def interpret(voltage):
-    print("inside interpret")
-    print(voltage)
+    #print("inside interpret")
+    #print(voltage)
     if 315 <= voltage and voltage <= 750:
         #print ("nothing")
         return nothing
@@ -57,7 +57,7 @@ def control_mux(x):
     else:
         GPIO.output(26, False)
 
-current_state = [nothing, nothing, nothing, nothing]
+current_state = [nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing]
 
 
 def print_value(y):
@@ -70,50 +70,33 @@ def print_value(y):
 
 while True:
     #sweep through inputs on mux
-    for i in range(2):
+    time.sleep(1)
+    for i in range(8):
         #mux inputs
         print ("currently checking :", i)
-        if i==0:
-            control_mux(i)
-            time.sleep(0.05)
-            t_end = time.time() + 0.01
-            avg_value = 0
-            count = 0
-            while time.time() < t_end:
-                avg_value += chan_1.value
-                count += 1
-                print(count)
-            current_value = avg_value/count
-            print(current_value) 
-            x = interpret(current_value)
-            print(x)
-            current_state[i] = x
-            print_value(x)
-        #adc input
-        else:
-            t_end = time.time() + 0.01
-            avg_value = 0
-            count = 0
-            while time.time() < t_end:
-                avg_value += chan_1.value
-                count += 1
-                print(count)
-            current_value = avg_value/count
-            x = interpret(current_value)
-            current_state[i] = x
-            print(current_value)
-            print(x)
-            print_value(x)
-        #print_value(current_state[i])
-        print("\n")
-        time.sleep(0.5)
-
+        
+        control_mux(i)
+        time.sleep(0.05)
+        t_end = time.time() + 0.01
+        avg_value = 0
+        count = 0
+        while time.time() < t_end:
+            avg_value += chan_0.value
+            count += 1
+            #print(count)
+        current_value = avg_value/count
+        print(current_value) 
+        x = interpret(current_value)
+        print(x)
+        current_state[i] = x
+        print_value(x)
+    print("\n")
     print ("current state of board:")
-    for i in range(4):
+    for i in range(8):
         print_value(current_state[i])
-        if i == 1 or i == 3:
-            print("\n")
-    time.sleep(0.5)
+    print("\n")
+    #time.sleep(2)
             
     
             
+
