@@ -86,7 +86,7 @@ class CoreGame(QObject):
         self.gui = gui
         self.ledWriter = LEDWriter()
         self.isMultiplayer = isMultiplayer
-        self.board = chess.Board()
+        self.board = chess.Board("8/p7/8/8/8/8/8/8 w KQkq - 0 4")
         self.catchUpRequired = False
         self.stockfishTime = stockfishTime
         xml = QXmlStreamReader()
