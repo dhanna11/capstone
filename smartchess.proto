@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+service SensorRead {
+  rpc SendSensorData (SensorRequest) returns (SensorResponse) {}
+}
+
+message SensorRequest {
+}
+
+message SensorResponse {
+  repeated int32 sensorValues = 1;
+}

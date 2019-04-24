@@ -159,7 +159,8 @@ class SensorRead(QObject):
                     time.sleep(0.5)
 
         self.new_physical_board_state.emit(new_physical_board_state)
-
+        return new_physical_board_state
+    
     def read_sensors(self):
         new_physical_board_state = []
         #sweep through inputs on mux
@@ -171,8 +172,87 @@ class SensorRead(QObject):
                 new_physical_board_state.append(x)
                 
         self.new_physical_board_state.emit(new_physical_board_state)
-        
+        return new_physical_board_state
+    
 class SensorReadMock(QObject):
+
+    new_physical_board_state = pyqtSignal(list)
+    
+    def __init__(self):
+        super().__init__()
+        self.state_index = 0;
+        self.state = [
+            # initial state: start of array is a0. Opposite of displayed SVG
+            # A1, B1, C1, D1, E1, F1, G1, H1
+            
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black
+            ],
+            # white selects h2
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+            # white plays h2h4
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, black, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+            # we hardcode black to play e7e5. Player needs to pick up e7
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, nothing, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+            # place e5
+            [
+                white, white, white, white, white, white, white, white,
+                white, white, white, white, white, white, white, nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,white,
+                nothing,nothing,nothing,nothing,black,nothing,nothing,nothing,
+                nothing,nothing,nothing,nothing,nothing,nothing,nothing,nothing,
+                black, black, black, black, nothing, black, black, black,
+                black, black, black, black, black, black, black, black,
+            ],
+
+        ]
+        
+    def add_new_physical_board_state_slot(self, slot):
+        self.new_physical_board_state.connect(slot)
+    
+    @pyqtSlot()
+    def read_sensors(self):
+        if self.state_index < len(self.state):
+            self.new_physical_board_state.emit(self.state[self.state_index])
+            self.state_index += 1
+
+
+class SensorReadMultiplayerMock(QObject):
 
     new_physical_board_state = pyqtSignal(list)
     

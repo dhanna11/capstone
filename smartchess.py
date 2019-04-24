@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
 from sensor_read import SensorReadMock, LEDWriter
-
+from concurrent import futures
+import grpc
 
 nothing = -1
 white = 0
@@ -153,6 +154,8 @@ class CoreGame(QObject):
             arrows=arrows))
         self.gui.renderer().load(xml)
         self.ledWriter.write_leds((255,0,0), list(squares))
+
+    def SendSensorData(self, request, context):
         
     def on_piece_placed(self, move):
         if move not in self.board.legal_moves:
@@ -207,7 +210,12 @@ class SmartChess():
         self.timer.timeout.connect(self.sensorRead.read_sensors)
         self.timer.start(1000)        
         sys.exit(self.app.exec_())
-
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        smartchess_pb2_grpc.add_SensorReadServicer_to_server(self.coreGame, server)
+        server.add_insecure_port('[::]:50051')
+        server.start()
+        
+    def 
 def main():
     smartChess = SmartChess()
 
