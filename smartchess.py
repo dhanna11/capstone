@@ -10,9 +10,8 @@ import time
 from PyQt5.QtWidgets import QApplication, QLineEdit
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
-from sensor_read import SensorReadMock, LEDWriter
+from sensor_read import SensorReadMock, SensorRead, LEDWriter
 from concurrent import futures
-import grpc
 
 nothing = -1
 white = 0
@@ -81,12 +80,12 @@ def convertFENToTernaryList(fen_str):
 
 class CoreGame(QObject):
     
-    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100):
+    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100, startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
         super().__init__()
         self.gui = gui
         self.ledWriter = LEDWriter()
         self.isMultiplayer = isMultiplayer
-        self.board = chess.Board("8/p7/8/8/8/8/8/8 w KQkq - 0 4")
+        self.board = chess.Board(startingFen)
         self.catchUpRequired = False
         self.stockfishTime = stockfishTime
         xml = QXmlStreamReader()
@@ -102,7 +101,7 @@ class CoreGame(QObject):
                 piece_indices.append(i)
         self.ledWriter.write_leds(piece_shadow_color, piece_indices)
         
-    def on_new_physical_board_state(self, newboardArray):
+    def on_new_physical_board_state(self, newboardArray):    
         # If stockfish or remote player makes a move, the local player needs to manipulate the
         # board to match the current state
         if self.catchUpRequired:
@@ -118,6 +117,10 @@ class CoreGame(QObject):
         else:
             oldboardArray = convertFENToTernaryList(self.board.fen())
             (source_square, dest_square) = interpreteBoardChange(newboardArray, oldboardArray)
+            print("current board array", oldboardArray)
+            print("array from sensors ", newboardArray)
+            print(source_square)
+            print(dest_square)
             if (source_square is not None and dest_square is None):
                 self.on_piece_selected(source_square)
             elif (source_square is not None and dest_square is not None):
@@ -161,8 +164,8 @@ class CoreGame(QObject):
             return                
         self.board.push(move)
         xml = QXmlStreamReader()
-        xml.addData(chess.svg.board(board=self.board))
-        self.gui.renderer().load(xml)                
+        xml.addData(chess.svg.board(board=self.board))        
+        self.gui.renderer().load(xml)
         if self.board.is_game_over():
             print("Game Over! Player wins")
         if not self.isMultiplayer:
@@ -174,8 +177,8 @@ class CoreGame(QObject):
             self.ledWriter.clear_leds()
             self.ledWriter.write_leds((0,255,0), [result.move.from_square])
             self.draw_base_board()
-            # self.board.push(result.move)
-            self.board.push(chess.Move(chess.E7, chess.E5))
+            self.board.push(result.move)
+            #self.board.push(chess.Move(chess.E7, chess.E5))
             self.catchUpRequired = True
             xml = QXmlStreamReader()
             xml.addData(chess.svg.board(board=self.board))
@@ -201,12 +204,13 @@ class SmartChessGui(QSvgWidget):
 class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.coreGame = CoreGame(SmartChessGui())
-        self.sensorRead = SensorReadMock()
+        startingFen = '7q/8/8/8/8/8/8/K7 w - - 0 1'
+        self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
+        self.sensorRead = SensorRead()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
-        self.timer.timeout.connect(self.sensorRead.read_sensors)
-        self.timer.start(1000)        
+        self.timer.timeout.connect(self.sensorRead.read_sensors_demo)
+        self.timer.start(2000)        
         sys.exit(self.app.exec_())
         
 def main():

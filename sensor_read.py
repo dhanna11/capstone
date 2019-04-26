@@ -4,6 +4,7 @@ import RPi.GPIO as GPIO
 
 import board
 import busio
+import chess
 from PyQt5.QtCore import QObject, pyqtSignal, QRunnable, pyqtSlot
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
@@ -54,9 +55,19 @@ class SensorRead(QObject):
         ads = ADS.ADS1015(i2c)
 
         # Create single-ended input on channel 1 and 2
-        chan_0 = AnalogIn(ads, ADS.P0)     
-        chan_1 = AnalogIn(ads, ADS.P1)
+        self.chan_0 = AnalogIn(ads, ADS.P0)     
+        self.chan_1 = AnalogIn(ads, ADS.P1)
 
+        self.current_state = [
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing,
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing]
+        
         #row pins
         GPIO.setup(13, GPIO.OUT)
         GPIO.setup(19, GPIO.OUT)
@@ -67,7 +78,7 @@ class SensorRead(QObject):
         GPIO.setup(20, GPIO.OUT)
         GPIO.setup(21, GPIO.OUT)
             
-    def interpret(voltage):
+    def interpret(self, voltage):
         if 315 <= voltage and voltage <= 750:
             #print ("nothing")
             return nothing
@@ -78,9 +89,8 @@ class SensorRead(QObject):
             #print ("black")
             return black
 
-
     #function to control based on number input (0-7)
-    def control_row_mux(x):
+    def control_row_mux(self, x):
         if x & 1 == 1:
             GPIO.output(13, True)
         else:
@@ -94,7 +104,7 @@ class SensorRead(QObject):
         else:
             GPIO.output(26, False)
             
-    def control_col_mux(x):
+    def control_col_mux(self, x):
         if x & 1 == 1:
             GPIO.output(16, True)
         else:
@@ -108,7 +118,7 @@ class SensorRead(QObject):
         else:
             GPIO.output(21, False)
 
-    def print_value(y):
+    def print_value(self, y):
         if y == nothing:
             print("nothing ", end ='')
         elif y == black:
@@ -120,47 +130,38 @@ class SensorRead(QObject):
         self.new_physical_board_state.connect(slot)
 
     def read_sensors_demo(self):
-        new_physical_board_state = [i for i in range(64)]
-        for i in range(4):
-            #mux inputs
-            print ("currently checking :", i)
-            if 0 <= i and i <= 2:
-                control_mux(i)
-                time.sleep(0.05)
+        for i in range(8):
+            self.control_row_mux(i)
+            for j in range(8):
+                #mux inputs
+                #print ("currently checking :", 8*i + j)
+                self.control_col_mux(j)
+                #time.sleep(0.05)
                 t_end = time.time() + 0.01
                 avg_value = 0
                 count = 0
                 while time.time() < t_end:
-                    avg_value += chan_0.value
+                    avg_value += self.chan_0.value
                     count += 1
-                    print(count)
-                    current_value = avg_value/count
-                    print(current_value) 
-                    x = interpret(current_value)
-                    print(x)
-                    print_value(x)
-                    new_physical_board_state[i] = x
-                    #adc input
-            else:
-                t_end = time.time() + 0.01
-                avg_value = 0
-                count = 0
-                while time.time() < t_end:
-                    avg_value += chan_1.value
-                    count += 1
-                    print(count)
-                    current_value = avg_value/count
-                    x = interpret(current_value)
-                    print(current_value)
-                    print(x)
-                    print_value(x)
-                    new_physical_board_state[i] = x
-                    print("\n")
-                    time.sleep(0.5)
-
-        self.new_physical_board_state.emit(new_physical_board_state)
-        return new_physical_board_state
-    
+                    #print(count)
+                current_value = avg_value/count
+                #print(current_value) 
+                x = self.interpret(current_value)
+                #print(x)
+                self.current_state[8*i + j] = x
+                #print_value(x)
+                #print("\n")
+        print("\n")
+        print ("current state of board:")
+        for i in range(64):
+            if i%8 == 0:
+                print("\n")
+            self.print_value(self.current_state[63-i])
+            print(chess.SQUARE_NAMES[i])
+        print("\n")
+        #time.sleep(2)
+        self.new_physical_board_state.emit(self.current_state[::-1])
+        
     def read_sensors(self):
         new_physical_board_state = []
         #sweep through inputs on mux
