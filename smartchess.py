@@ -80,7 +80,8 @@ def convertFENToTernaryList(fen_str):
 
 class CoreGame(QObject):
     
-    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100, startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
+    def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100,
+                 startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPpPPP/RNBQKBNR"):
         super().__init__()
         self.gui = gui
         self.ledWriter = LEDWriter()

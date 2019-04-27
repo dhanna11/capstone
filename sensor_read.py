@@ -23,14 +23,15 @@ class LEDWriter(QObject):
         self.pixels = neopixel.NeoPixel(self.pixel_pin, self.num_pixels, brightness=0.2, auto_write=False, pixel_order=self.ORDER)
 
     def led_index(self, raw_index):
+        #we have one extra led at the start, need to add offset to all indexes
         #only change for odd rows
         if(raw_index % 16 >= 8):
             row = raw_index//8
             add_index = 8 * (row+1) - 1 - raw_index
             led_index = 8*row + add_index
-            return led_index
+            return led_index+1
         else:
-            return raw_index
+            return raw_index+1
 
     def write_leds(self, color, indices):
         for index in indices:
