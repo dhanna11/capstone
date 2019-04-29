@@ -7,7 +7,7 @@ import chess.engine
 import chess.svg
 import queue
 import time
-from PyQt5.QtWidgets import QApplication, QLineEdit
+from PyQt5.QtWidgets import QApplication, QLineEdit, QGridLayout
 from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
 from sensor_read import SensorReadMock, SensorRead, LEDWriter
@@ -81,7 +81,7 @@ def convertFENToTernaryList(fen_str):
 class CoreGame(QObject):
     
     def __init__(self, gui: QSvgWidget, isMultiplayer: bool = False, stockfishTime: float = 0.100,
-                 startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPpPPP/RNBQKBNR"):
+                 startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"):
         super().__init__()
         self.gui = gui
         self.ledWriter = LEDWriter()
@@ -129,8 +129,15 @@ class CoreGame(QObject):
 
     def on_piece_selected_catchup(self, source_square, stockfishmove):
         if (source_square == stockfishmove.from_square):
-            # light up destination square for piece
-            self.ledWriter.write_leds((0,255,0), [self.board.peek().to_square])
+            # draw arrow to dest square
+            arrows = [
+                chess.svg.Arrow(
+                    stockfishmove.from_square, stockfishmove.to_square, color="black")
+            ]
+            xml = QXmlStreamReader()                
+            xml.addData(chess.svg.board(board=self.board, arrows=arrows))
+            self.gui.renderer().load(xml)
+            self.ledWriter.write_leds((0,255,0), [stockfishmove.to_square])
         else:
             print("Error! Picked up wrong piece from square ", chess.SQUARE_NAMES[source_square])
 
@@ -148,7 +155,7 @@ class CoreGame(QObject):
         for move in self.board.legal_moves:
             if move.from_square == source_square:
                 squares.add(move.to_square)
-        # draw a circle by drawing an arrow
+        # draw a circle by drawing an arrow to the same source_square
         arrows = [
             chess.svg.Arrow(
                 source_square, source_square, color="black")
@@ -200,6 +207,8 @@ class SmartChessGui(QSvgWidget):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
+        grid = QGridLayout()
+        self.setLayout(grid)        
         self.show()
 
 class SmartChess():
@@ -207,7 +216,7 @@ class SmartChess():
         self.app = QApplication(sys.argv)
         startingFen = 'kq6/8/8/8/8/8/8/K7 w - - 0 1'
         self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
-        self.sensorRead = SensorRead()
+        self.sensorRead = SensorReadMock()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
         self.timer.timeout.connect(self.sensorRead.read_sensors_demo)
