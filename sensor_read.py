@@ -18,7 +18,7 @@ class LEDWriter(QObject):
     def __init__(self):
         super(LEDWriter, self).__init__()
         self.pixel_pin = board.D18
-        self.num_pixels = 64
+        self.num_pixels = 65
         self.ORDER = neopixel.GRB
         self.pixels = neopixel.NeoPixel(self.pixel_pin, self.num_pixels, brightness=0.2, auto_write=False, pixel_order=self.ORDER)
 
@@ -81,13 +81,10 @@ class SensorRead(QObject):
             
     def interpret(self, voltage):
         if 315 <= voltage and voltage <= 750:
-            #print ("nothing")
             return nothing
         elif voltage < 315:
-            #print("white")
             return white
         elif 750 < voltage:
-            #print ("black")
             return black
 
     #function to control based on number input (0-7)
@@ -130,52 +127,23 @@ class SensorRead(QObject):
     def add_new_physical_board_state_slot(self, slot):
         self.new_physical_board_state.connect(slot)
 
-    def read_sensors_demo(self):
+    def read_sensors(self):
         for i in range(8):
             self.control_row_mux(i)
             for j in range(8):
                 #mux inputs
-                #print ("currently checking :", 8*i + j)
                 self.control_col_mux(j)
-                #time.sleep(0.05)
                 t_end = time.time() + 0.01
                 avg_value = 0
                 count = 0
                 while time.time() < t_end:
                     avg_value += self.chan_0.value
                     count += 1
-                    #print(count)
                 current_value = avg_value/count
-                #print(current_value) 
                 x = self.interpret(current_value)
-                #print(x)
                 self.current_state[8*i + j] = x
-                #print_value(x)
-                #print("\n")
-        print("\n")
-        print ("current state of board:")
-        for i in range(64):
-            if i%8 == 0:
-                print("\n")
-            self.print_value(self.current_state[63-i])
-            print(chess.SQUARE_NAMES[i])
-        print("\n")
-        #time.sleep(2)
         self.new_physical_board_state.emit(self.current_state[::-1])
-        
-    def read_sensors(self):
-        new_physical_board_state = []
-        #sweep through inputs on mux
-        for i in range(8):
-            control_row_mux(i)
-            for j in range(8):
-                control_col_mux(j)
-                x = interpret(chan_0.value)
-                new_physical_board_state.append(x)
-                
-        self.new_physical_board_state.emit(new_physical_board_state)
-        return new_physical_board_state
-    
+            
 class SensorReadMock(QObject):
 
     new_physical_board_state = pyqtSignal(list)

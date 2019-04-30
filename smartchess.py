@@ -33,6 +33,16 @@ def BoardChangeToSourceSquare(newboardArray, oldboardArray):
         # should find a difference. Error out if not
     assert (false)
 
+def isPseudoValidBoardChange(newboardArray, oldboardArray):
+    # check that the of the two arrays are at most 2
+    assert (len(newboardArray) == len(oldboardArray))
+    dest_square = None
+    source_square = None
+    for i in range(len(newboardArray)):
+        if ((newboardArray[i] != nothing) and (oldboardArray[i] == nothing)):
+            pass
+        
+    
 def interpreteBoardChange(newboardArray, oldboardArray):
     assert (len(newboardArray) == len(oldboardArray))
     dest_square = None
@@ -148,7 +158,8 @@ class CoreGame(QObject):
             self.draw_base_board()
             # TODO: Smart clock manipulation?
         else:
-            print("Error! Played wrong move", move)
+            print("Error! Played wrong move", catchupmove)
+            print("Stockfish played ", stockfishmove)
             
     def on_piece_selected(self, source_square):
         squares = chess.SquareSet()
@@ -216,10 +227,10 @@ class SmartChess():
         self.app = QApplication(sys.argv)
         startingFen = 'kq6/8/8/8/8/8/8/K7 w - - 0 1'
         self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
-        self.sensorRead = SensorReadMock()
+        self.sensorRead = SensorRead()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
-        self.timer.timeout.connect(self.sensorRead.read_sensors_demo)
+        self.timer.timeout.connect(self.sensorRead.read_sensors)
         self.timer.start(2000)        
         sys.exit(self.app.exec_())
         
