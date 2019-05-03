@@ -226,7 +226,8 @@ class SmartChess():
     def __init__(self):
         self.app = QApplication(sys.argv)
         startingFen = 'kq6/8/8/8/8/8/8/K7 w - - 0 1'
-        self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
+        #self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
+        self.coreGame = CoreGame(SmartChessGui())
         self.sensorRead = SensorRead()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
