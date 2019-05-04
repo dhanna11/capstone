@@ -7,6 +7,66 @@ import busio
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
+#new stuff added for timer
+
+import time
+import datetime
+
+from Adafruit_LED_Backpack import SevenSegment
+
+import threading
+
+segment = SevenSegment.SevenSegment(address=0x70)
+segment.begin()
+
+class Timer :
+    def __init__(self):
+        self._stop = threading.Event()
+        self.my_thread = threading.Thread(target = self.run_timer)
+    
+    def start_timer(self):
+        self.my_thread.start()
+    
+    def stop(self):
+        self._stop.set()
+    
+    def stopped(self):
+        return self._stop.isSet()
+    
+    def run_timer(self):
+        raw_start = time.time()
+        while not self.stopped():
+            now = time.time()
+            diff = now - raw_start
+            print(diff)
+            
+            if diff < 10:
+                diff_str = str(diff)
+                list_diff = list(diff_str)
+                d_two = list_diff[0]
+                d_three = list_diff[2]
+                d_four = list_diff[3]
+            else:
+                diff_str = str(diff)
+                list_diff = list(diff_str)
+                d_one = list_diff[0]
+                d_two = list_diff[1]
+                d_three = list_diff[3]
+                d_four = list_diff[4]
+                
+
+            segment.clear()
+            if diff >= 10:
+                segment.set_digit(0, d_one)       
+            segment.set_digit(1, d_two)    
+            segment.set_digit(2, d_three)   
+            segment.set_digit(3, d_four)        
+            segment.set_colon(now % 2)             
+            segment.write_display()           
+            
+timer = Timer()
+timer.start_timer()
+
 #GPIO.setmode(GPIO.BOARD)
 GPIO.setup(13, GPIO.OUT)
 GPIO.setup(19, GPIO.OUT)
@@ -96,7 +156,7 @@ def print_value(y):
 
 while True:
     #sweep through inputs on mux
-    time.sleep(1)
+    #time.sleep(1)
     for i in range(8):
         control_row_mux(i)
         for j in range(8):
@@ -116,6 +176,8 @@ while True:
             #print(current_value) 
             x = interpret(current_value)
             #print(x)
+            if current_state[8*i + j] != x:
+                timer.stop()
             current_state[8*i + j] = x
             #print_value(x)
             #print("\n")
@@ -127,8 +189,8 @@ while True:
         print_value(current_state[i])
     print("\n")
     #time.sleep(2)
+
             
-    
-            
+
 
 
