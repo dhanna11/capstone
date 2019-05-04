@@ -38,7 +38,7 @@ class Timer :
         while not self.stopped():
             now = time.time()
             diff = now - raw_start
-            print(diff)
+            #print(diff)
             
             if diff < 10:
                 diff_str = str(diff)
@@ -154,6 +154,9 @@ def print_value(y):
     elif y == white:
         print("white ", end ='')
 
+
+    #time.sleep(2)
+
 while True:
     #sweep through inputs on mux
     #time.sleep(1)
@@ -176,8 +179,6 @@ while True:
             #print(current_value) 
             x = interpret(current_value)
             #print(x)
-            if current_state[8*i + j] != x:
-                timer.stop()
             current_state[8*i + j] = x
             #print_value(x)
             #print("\n")
@@ -188,9 +189,64 @@ while True:
             print("\n")
         print_value(current_state[i])
     print("\n")
-    #time.sleep(2)
 
-            
-
-
+class Sensor :
+    def __init__(self):
+        self._stop = threading.Event()
+        self.my_thread = threading.Thread(target = self.read)
+    
+    def start_sensor(self):
+        self.my_thread.start()
+    
+    def stop(self):
+        self._stop.set()
+    
+    def stopped(self):
+        return self._stop.isSet()
+    
+    def read(self):
+        print("inside read")
+        while not self.stopped():
+            #sweep through inputs on mux
+            time.sleep(0.5)
+            print("looping")
+            for i in range(8):
+                control_row_mux(i)
+                for j in range(8):
+                    #mux inputs
+                    #print ("currently checking :", 8*i + j)
+                
+                    control_col_mux(7-j)
+                    #time.sleep(0.05)
+                    t_end = time.time() + 0.01
+                    #avg_value = 0
+                    count = 0
+                    #while time.time() < t_end:
+                        #avg_value += chan_0.value
+                        #count += 1
+                        #print(count)
+                    #current_value = avg_value/count
+                    current_value = chan_0.value
+                    #print(current_value) 
+                    x = interpret(current_value)
+                    #print(x)
+                    #if current_state[8*i + j] != x:
+                        #timer.stop()
+                    current_state[8*i + j] = x
+                    #print_value(x)
+                    #print("\n")
+            print("\n")
+            print ("current state of board:")
+            for i in range(64):
+                if i%8 == 0:
+                    print("\n")
+                print_value(current_state[i])
+            print("\n")
+#print("getting to sensor read")
+#sensor = Sensor()
+#sensor.start_sensor()
+#time.sleep(5)
+#print("5 seconds have passed")
+#timer.stop()
+#print("getting back from read")
 

@@ -18,7 +18,7 @@ class LEDWriter(QObject):
     def __init__(self):
         super(LEDWriter, self).__init__()
         self.pixel_pin = board.D18
-        self.num_pixels = 65
+        self.num_pixels = 64
         self.ORDER = neopixel.GRB
         self.pixels = neopixel.NeoPixel(self.pixel_pin, self.num_pixels, brightness=0.2, auto_write=False, pixel_order=self.ORDER)
 
@@ -29,9 +29,9 @@ class LEDWriter(QObject):
             row = raw_index//8
             add_index = 8 * (row+1) - 1 - raw_index
             led_index = 8*row + add_index
-            return led_index+1
+            return led_index
         else:
-            return raw_index+1
+            return raw_index
 
     def write_leds(self, color, indices):
         for index in indices:
