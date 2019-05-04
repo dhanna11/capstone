@@ -16,11 +16,11 @@ from Adafruit_LED_Backpack import SevenSegment
 
 import threading
 
-segment = SevenSegment.SevenSegment(address=0x70)
-segment.begin()
 
 class Timer :
     def __init__(self):
+        self.segment = SevenSegment.SevenSegment(address=0x70)
+        self.segment.begin()
         self._stop = threading.Event()
         self.my_thread = threading.Thread(target = self.run_timer)
     
@@ -55,14 +55,14 @@ class Timer :
                 d_four = list_diff[4]
                 
 
-            segment.clear()
+            self.segment.clear()
             if diff >= 10:
-                segment.set_digit(0, d_one)       
-            segment.set_digit(1, d_two)    
-            segment.set_digit(2, d_three)   
-            segment.set_digit(3, d_four)        
-            segment.set_colon(now % 2)             
-            segment.write_display()           
+                self.segment.set_digit(0, d_one)       
+            self.segment.set_digit(1, d_two)    
+            self.segment.set_digit(2, d_three)   
+            self.segment.set_digit(3, d_four)        
+            self.segment.set_colon(now % 2)             
+            self.segment.write_display()           
             
 timer = Timer()
 timer.start_timer()
@@ -96,15 +96,13 @@ black = 1
 def interpret(voltage):
     #print("inside interpret")
     #print(voltage)
-    if 315 <= voltage and voltage <= 750:
-        #print ("nothing")
+    if 450 <= voltage and voltage <= 850:
         return nothing
-    elif voltage < 315:
-        #print("white")
+    elif voltage < 450:
         return white
-    elif 750 < voltage:
-        #print ("black")
+    elif 850 < voltage:
         return black
+
 
 
 #function to control based on number input (0-7)
@@ -240,7 +238,8 @@ class Sensor :
             for i in range(64):
                 if i%8 == 0:
                     print("\n")
-                print_value(current_state[i])
+                #print_value(current_state[i])
+                print(chan_0.value)
             print("\n")
 #print("getting to sensor read")
 #sensor = Sensor()

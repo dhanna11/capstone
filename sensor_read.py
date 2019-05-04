@@ -80,11 +80,11 @@ class SensorRead(QObject):
         GPIO.setup(21, GPIO.OUT)
             
     def interpret(self, voltage):
-        if 315 <= voltage and voltage <= 750:
+        if 450 <= voltage and voltage <= 850:
             return nothing
-        elif voltage < 315:
+        elif voltage < 450:
             return white
-        elif 750 < voltage:
+        elif 850 < voltage:
             return black
 
     #function to control based on number input (0-7)

@@ -36,15 +36,13 @@ black = 1
 def interpret(voltage):
     #print("inside interpret")
     #print(voltage)
-    if 315 <= voltage and voltage <= 750:
-        #print ("nothing")
+    if 450 <= voltage and voltage <= 850:
         return nothing
-    elif voltage < 315:
-        #print("white")
+    elif voltage < 450:
         return white
-    elif 750 < voltage:
-        #print ("black")
+    elif 850 < voltage:
         return black
+
 
 
 #function to control based on number input (0-7)
@@ -98,12 +96,15 @@ while True:
     #sweep through inputs on mux
     time.sleep(1)
     for i in range(8):
-        control_row_mux(i)
+        #control_row_mux(i)
+        control_row_mux(7)
         for j in range(8):
             #mux inputs
             #print ("currently checking :", 8*i + j)
         
-            control_col_mux(7-j)
+            #control_col_mux(7-j)
+            control_col_mux(7)
+            print(chan_0.value)
             #time.sleep(0.05)
             t_end = time.time() + 0.01
             avg_value = 0
@@ -119,13 +120,14 @@ while True:
             current_state[8*i + j] = x
             #print_value(x)
             #print("\n")
-    print("\n")
-    print ("current state of board:")
-    for i in range(64):
-        if i%8 == 0:
-            print("\n")
-        print_value(current_state[i])
-    print("\n")
+    #print("\n")
+    #print ("current state of board:")
+    #for i in range(64):
+        #if i%8 == 0:
+            #print("\n")
+        #print_value(current_state[i])
+        
+    #print("\n")
     #time.sleep(2)
             
     
