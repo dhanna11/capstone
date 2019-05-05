@@ -97,14 +97,14 @@ while True:
     time.sleep(1)
     for i in range(8):
         #control_row_mux(i)
-        control_row_mux(7)
+        control_row_mux(i)
         for j in range(8):
             #mux inputs
             #print ("currently checking :", 8*i + j)
         
-            #control_col_mux(7-j)
-            control_col_mux(7)
-            print(chan_0.value)
+            control_col_mux(7-j)
+            #control_col_mux(7)
+            #print(chan_0.value)
             #time.sleep(0.05)
             t_end = time.time() + 0.01
             avg_value = 0
@@ -120,14 +120,14 @@ while True:
             current_state[8*i + j] = x
             #print_value(x)
             #print("\n")
-    #print("\n")
-    #print ("current state of board:")
-    #for i in range(64):
-        #if i%8 == 0:
-            #print("\n")
-        #print_value(current_state[i])
+    print("\n")
+    print ("current state of board:")
+    for i in range(64):
+        if i%8 == 0:
+            print("\n")
+        print_value(current_state[i])
         
-    #print("\n")
+    print("\n")
     #time.sleep(2)
             
     

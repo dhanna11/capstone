@@ -26,12 +26,12 @@ class LEDWriter(QObject):
         #we have one extra led at the start, need to add offset to all indexes
         #only change for odd rows
         if(raw_index % 16 >= 8):
+            return raw_index
+        else:
             row = raw_index//8
             add_index = 8 * (row+1) - 1 - raw_index
             led_index = 8*row + add_index
             return led_index
-        else:
-            return raw_index
 
     def write_leds(self, color, indices):
         for index in indices:

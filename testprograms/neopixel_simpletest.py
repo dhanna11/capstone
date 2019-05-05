@@ -13,7 +13,7 @@ import neopixel
 #pixel_pin = board.NEOPIXEL
 
 # On a Raspberry pi, use this instead, not all pins are supported
-pixel_pin = board.D12
+pixel_pin = board.D18
 
 # The number of NeoPixels
 num_pixels = 64

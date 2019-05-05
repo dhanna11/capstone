@@ -12,6 +12,7 @@ from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
 from PyQt5.QtCore import QXmlStreamReader, pyqtSignal, QObject, pyqtSlot, QThread, QTimer
 from sensor_read import SensorReadMock, SensorRead, LEDWriter
 from concurrent import futures
+from Adafruit_LED_Backpack import SevenSegment
 
 nothing = -1
 white = 0
@@ -104,7 +105,31 @@ class CoreGame(QObject):
         self.gui.renderer().load(xml)
         self.ledWriter.clear_leds()
         self.draw_base_board()
+        self.segment = SevenSegment.SevenSegment(address=0x70)
+        self.segment.begin()
+        self.blackTotalTime = 0
+        self.whiteTotalTime = 0
+
         
+    def updateTimerBy1sec(self):
+        if self.board.turn is chess.WHITE:
+            self.whiteTotalTime +=1
+            self.writeTimer(self.whiteTotalTime)
+        else:
+            self.blackTotalTime +=1 
+            self.writeTimer(self.blackTotalTime)
+
+    def writeTimer(self, time):
+        
+        self.segment.clear()        
+        self.segment.set_digit(3, time % 10)
+        self.segment.set_digit(2, (time // 10) % 6)
+        self.segment.set_digit(1, (time // 60) % 10)
+        self.segment.set_digit(0, (time // 600) % 10)
+            
+        self.segment.set_colon(time % 2)             
+        self.segment.write_display()           
+
     def draw_base_board(self):
         piece_indices = []
         for i in range(64):
@@ -112,9 +137,16 @@ class CoreGame(QObject):
                 piece_indices.append(i)
         self.ledWriter.write_leds(piece_shadow_color, piece_indices)
         
-    def on_new_physical_board_state(self, newboardArray):    
+    def on_new_physical_board_state(self, newboardArray):
+        #refresh debug gui
+        xml = QXmlStreamReader()                
+        xml.addData(chess.svg.board(board=self.board))
+        self.gui.renderer().load(xml)
+        self.ledWriter.clear_leds()
+        self.draw_base_board()
         # If stockfish or remote player makes a move, the local player needs to manipulate the
         # board to match the current state
+        
         if self.catchUpRequired:
             # temporarily pop-off previous stockfish move
             stockfishmove = self.board.pop()
@@ -227,12 +259,15 @@ class SmartChess():
         self.app = QApplication(sys.argv)
         startingFen = 'kq6/8/8/8/8/8/8/K7 w - - 0 1'
         #self.coreGame = CoreGame(SmartChessGui(), startingFen = startingFen)
-        self.coreGame = CoreGame(SmartChessGui())
+        self.coreGame = CoreGame(SmartChessGui(), isMultiplayer=True)
         self.sensorRead = SensorRead()
         self.sensorRead.add_new_physical_board_state_slot(self.coreGame.on_new_physical_board_state)
         self.timer = QTimer()
         self.timer.timeout.connect(self.sensorRead.read_sensors)
-        self.timer.start(2000)        
+        self.timer.start(1000)
+        self.clockTimer = QTimer()
+        self.clockTimer.timeout.connect(self.coreGame.updateTimerBy1sec)
+        self.clockTimer.start(1000)
         sys.exit(self.app.exec_())
         
 def main():
